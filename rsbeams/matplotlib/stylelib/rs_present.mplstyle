@@ -1,0 +1,93 @@
+# RadiaSoft style for presentations
+# This style provides basic augementation of the default Matplotlib styles to produce clean figures for publication
+# Further specification of specialized plots will still be required
+# Nathan Cook
+# 06/03/2016
+
+
+
+#################
+#Figure Parameters
+#################
+
+figure.figsize: 9.8, 7
+figure.dpi: 300      # figure dots per inch
+
+#################
+#Axes Parameters
+#################
+
+axes.labelsize: 17.6
+axes.titlesize: 19.2
+axes.prop_cycle : cycler('color', ['1f77b4', 'aec7e8', 'ff7f0e', 'ffbb78', '2ca02c', '98df8a', 'd62728', 'ff9896', '9467bd', 'c5b0d5', '8c564b', 'c49c94', 'e377c2', 'f7b6d2', '7f7f7f', 'c7c7c7', 'bcbd22', 'dbdb8d', '17becf', '9edae5'])
+
+
+#################
+#Legend Parameters
+#################
+
+legend.fontsize: 16
+legend.scatterpoints: 1
+legend.borderaxespad: 0.5
+legend.edgecolor: black
+legend.loc: upper left
+
+
+#################
+#Line parameters
+#################
+
+grid.linewidth: 1.6
+lines.linewidth: 2.8
+patch.linewidth: 0.48
+lines.markersize: 11.2
+lines.markeredgewidth: 0
+
+
+#################
+#Font and Text Parameters
+#################
+
+#use the following to select the available fonts for each family
+font.serif          : Palatino, Times, New Century Schoolbook, Bookman, Computer Modern Roman
+font.sans-serif     : Helvetica, Arial, Avant Garde, Computer Modern Sans serif
+font.cursive        : Zapf Chancery, Sand, cursive
+font.fantasy        : Comic Sans MS, Chicago, Charcoal, Impact, Western, fantasy
+font.monospace      : Source Code Pro, Courier, Computer Modern Typewriter
+
+font.family : sans-serif
+text.usetex: True
+
+#################
+#Tick Parameters
+#################
+
+xtick.major.width: 1.6
+ytick.major.width: 1.6
+xtick.minor.width: 0.8
+ytick.minor.width: 0.8
+
+xtick.minor.visible: True
+ytick.minor.visible: True
+
+xtick.labelsize: 16
+ytick.labelsize: 16
+
+xtick.major.pad: 11.2
+ytick.major.pad: 11.2
+
+#################
+#Image Parameters
+#################
+image.cmap: viridis
+image.aspect : equal  
+
+
+#################
+#Save Parameters
+#################
+savefig.dpi         : 300      # figure dots per inch
+savefig.format      : pdf      # png, ps, pdf, svg
+savefig.bbox        : tight # 'tight' or 'standard'.
+savefig.pad_inches  : 0.1      # Padding to be used when bbox is set to 'tight'
+savefig.jpeg_quality: 95       # when a jpeg is saved, the default quality parameter.
