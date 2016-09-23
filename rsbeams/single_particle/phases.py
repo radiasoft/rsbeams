@@ -89,8 +89,8 @@ def phase_advance(p1, p2, clockwise=True):
 ###################################### FFT Frequency Analysis ###################################
 
 
-def tune_fft(x_c, t_i = 1, t_f = None):
-    '''
+def tune_fft(x_c, t_i=1, t_f=None):
+    """
     Estimate the tune using an FFT of particle coordinates for N particles.
     Assuming we sample 1x per turn, then the tune resolution is 1/(t_f-t_i),
     the e.g. the reciprocal of the number of points in the sample interval.
@@ -99,24 +99,19 @@ def tune_fft(x_c, t_i = 1, t_f = None):
         x_c (ndArray): Nx1 array of particle coordinates in one plane
         t_i (Optional[int]): Index of x_c from which the fft begins. Defaults to 1.
         t_f (Optional[int]): Index of x_c at which the fft ends. Defaults to None.
-    
-    
-    '''
+    """
     
     if not t_f:
-        #if no end specified, then take interval to end of x_c
+        # if no end specified, then take interval to end of x_c
         t_f = len(x_c)
-    
-    
-    num_used = len(x_c[t_s:t_f])
-    tv = np.arange(num_used)*1.0/num_used
-    sp = np.abs(np.fft.fft(x_c[t_s:t_f])) #take absolute value of every value of fft array
 
-    smax = np.max(sp)
-    m_ind = np.where(sp == smax)
-    Q_guess =m_ind[0][0]*1./num_used
+    num_used = len(x_c[t_i:t_f])
+    sp = np.abs(np.fft.fft(x_c[t_i:t_f]))  # take absolute value of every value of fft array
+
+    m_ind = np.argmax(sp)
+    Q_guess =m_ind * 1. / num_used
     if Q_guess > 0.5:
-        Q_calc = 1.- Q_guess
+        Q_calc = 1. - Q_guess
     else:
         Q_calc = Q_guess
     return Q_calc
