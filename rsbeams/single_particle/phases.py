@@ -34,9 +34,9 @@ coords['id'] = 6
 
 def phase_advance(p1, p2, clockwise=True):
     '''
-    Returns the phase advance between two coordinates (2-vectors).
+    Returns the angle between two vectors.
     
-    Computes an effective phase advance by comparing an initial and final position in phase space.
+    This script is used to compute an effective phase advance by comparing an initial and final position in phase space.
     
     Arguments:
         p1 (ndarray): Array containing phase space coordinates (e.g. [x, x'])
@@ -47,44 +47,19 @@ def phase_advance(p1, p2, clockwise=True):
         guess_angle (float): The angle between the input vectors, given in radians. Assumes clockwise rotation.
     
     '''
+    #use the quadrant-dependent arcantangent to get the effective angle (measured clockwise) for each vector
+    #and take the difference of the two.
+    guess  = np.arctan2(p1[1],p1[0]) - np.arctan2(p2[1],p2[0])
     
-    norm1 = np.linalg.norm(p1)
-    norm2 = np.linalg.norm(p2)
-    
-    #Determine the quadrant - the integer corresponds to the quadrant
-    q1 = 1*((p1[0] > 0) & (p1[1] >= 0)) + 2*((p1[0] <= 0) & (p1[1] > 0)) + 3*((p1[0] < 0) & (p1[1] <= 0)) + 4*((p1[0] >= 0) & (p1[1] < 0))
-    q2 = 1*((p2[0] > 0) & (p2[1] >= 0)) + 2*((p2[0] <= 0) & (p2[1] > 0)) + 3*((p2[0] < 0) & (p2[1] <= 0)) + 4*((p2[0] >= 0) & (p2[1] < 0))
-
-    
-    #calculate dot product
-    product = np.dot(p1,p2)
-    guess_angle = np.arccos(product/(norm1*norm2))
-    
-    #determine if phase advance > 180 degrees
-    #For the 3,4 -> 1,2 cases, always want the negative x value to have larger magnitude
-    if (q2-q1 >= 2):
-        #rotation > 180
-        greater = True
-    elif (q1==3) and (q2==1) and (np.abs(p1[0])>p2[0]):
-        #rotation > 180 because x1 > x2 for q3 -> q1
-        greater = True
-    elif (q1==4) and (q2==2) and (np.abs(p2[0])>p1[0]):
-        #rotation > 180 because x2 > x1 for q4 -> q2
-        greater = True
+    if guess < 0:
+        advance = 2*np.pi + guess
     else:
-        greater = False
-    
-    #if phase advance > 180 for counterclockwise rotation, return 2.*np.pi - guess_angle
-    if greater:
-        if clockwise:
-            return guess_angle
-        else:
-            return 2*np.pi- guess_angle    
-    else:
-        if clockwise:
-            return 2*np.pi- guess_angle
-        else:
-            return guess_angle
+        advance = guess
+        
+    if not clockwise:
+        advance = 2*np.pi - advance
+        
+    return advance
 
 ###################################### FFT Frequency Analysis ###################################
 
