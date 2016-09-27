@@ -56,7 +56,7 @@ font.fantasy        : Comic Sans MS, Chicago, Charcoal, Impact, Western, fantasy
 font.monospace      : Source Code Pro, Courier, Computer Modern Typewriter
 
 font.family : sans-serif
-text.usetex: True
+text.usetex: False				#`True` causes issues with container hosted on jupyter.radiasoft.org
 
 #################
 #Tick Parameters
