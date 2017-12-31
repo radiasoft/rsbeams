@@ -1,8 +1,3 @@
-import math
-import numpy as np
-from matplotlib.path import Path
-
-
 """
 Generalized algorithm for plotting contour and/or scatter plots.
   plotFlag is queried to determine what's done.
@@ -20,13 +15,19 @@ divs     : desired number of divisions along each axis
 levels   : integer or array (optional, default=10)
          number of contour levels, or array of contour levels
 """
-def scatConPlot(plotFlag, plotType, x, y, ax, divs=10, levels=10):
+
+import math
+import numpy
+from matplotlib.path import Path
+
+def scat_con_plot(plotFlag, plotType, x, y, ax, divs=10, levels=10):
+    """Generate the specified plot"""
     ref = None
     if plotFlag in ['contour', 'combo']:
         if type(x) is list: # x contains data for 2 axis ranges
-            levels = np.asarray(levels)
+            levels = numpy.asarray(levels)
             if levels.size == 1:
-                levels = np.linspace(min(y), max(y), levels)
+                levels = numpy.linspace(min(y), max(y), levels)
 
             minX = min(x[0])
             maxX = max(x[0])
@@ -38,7 +39,7 @@ def scatConPlot(plotFlag, plotType, x, y, ax, divs=10, levels=10):
             ratio = float(maxX - minX)/(maxY - minY)
             shapeX = math.sqrt(points*ratio)
             shapeY = math.sqrt(points/ratio)
-            X, Y = np.meshgrid(x[0], x[1])
+            X, Y = numpy.meshgrid(x[0], x[1])
             Z = y.reshape([shapeX, shapeY])
             Z = Z[0:len(x[0]), 0:len(x[1])]
 
@@ -49,18 +50,18 @@ def scatConPlot(plotFlag, plotType, x, y, ax, divs=10, levels=10):
 
             # generate the 2D histogram, allowing the algorithm to use
             #   all data points, automatically calculating the 2D extent
-            myHist, xbins, ybins = np.histogram2d(x, y, divs)
+            myHist, xbins, ybins = numpy.histogram2d(x, y, divs)
 
             # specify contour levels, allowing user to input simple integer
-            levels = np.asarray(levels)
+            levels = numpy.asarray(levels)
             # if user specified an integer, then populate levels reasonably
             if levels.size == 1:
-                levels = np.linspace(threshold, myHist.max(), levels)
+                levels = numpy.linspace(threshold, myHist.max(), levels)
 
             # define the 'extent' of the contoured area, using the
             #   the horizontal and vertical arrays generaed by histogram2d()
             extent = [xbins[0], xbins[-1], ybins[0], ybins[-1]]
-            i_min = np.argmin(levels)
+            i_min = numpy.argmin(levels)
 
             # draw a zero-width line, which defines the outer polygon,
             #   in order to reduce the number of points drawn
@@ -76,7 +77,7 @@ def scatConPlot(plotFlag, plotType, x, y, ax, divs=10, levels=10):
     if plotFlag == 'combo':
         # create new 2D array that will hold a subset of the particles
         #   i.e. only those in the low-density regions
-        lowDensityArray = np.hstack([x[:, None], y[:, None]])
+        lowDensityArray = numpy.hstack([x[:, None], y[:, None]])
 
         # extract only those particles outside the high-density region
         if len(outline.allsegs[0]) > 0:
@@ -87,12 +88,13 @@ def scatConPlot(plotFlag, plotType, x, y, ax, divs=10, levels=10):
             Xplot = lowDensityArray
 
     if plotFlag.startswith('scatter') or plotFlag.endswith('line'):
-        Xplot = np.hstack([x[:, None], y[:, None]])
+        Xplot = numpy.hstack([x[:, None], y[:, None]])
 
     if plotFlag in ['combo', 'scatter', 'scatter-line']:
 
-        # Terrible hack to get around the "fact" that scatter plots
-        # do not get correct axis limits if either axis is log scale.
+        # Below is a hack to get around the fact that scatter plots
+        # don't get correct axis limits if either axis is log scale.
+        #
         # ax.plot(...) seems to work, so draw a plot and then delete
         # it, leaving the plot with a correct axes view.
 
@@ -120,19 +122,18 @@ def scatConPlot(plotFlag, plotType, x, y, ax, divs=10, levels=10):
 
 
 
-# function to generate contour levels
 def generateContourLevels(field, nLevels=40, multiplier=1.1):
-    # generate symmetric min/max values
-    eMax = multiplier * np.max(field)
-    eMin = multiplier * np.min(field)
+    """generate the contour levels"""
+
+    eMax = multiplier * numpy.max(field)
+    eMin = multiplier * numpy.min(field)
     if abs(eMin) < eMax:
-        eMax = np.around(eMax, decimals=3)
+        eMax = numpy.around(eMax, decimals=3)
         eMin = -eMax
     else:
-        eMin= np.around(eMin, decimals=3)
+        eMin= numpy.around(eMin, decimals=3)
         eMax = abs(eMin)
-        
-    # create the level values
+
     eLevels = []
     deltaE = (eMax-eMin) / nLevels
     for iLoop in range(nLevels):
