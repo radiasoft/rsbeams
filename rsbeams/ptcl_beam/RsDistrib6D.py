@@ -18,144 +18,144 @@ from rsbeams.statistics import stats6d
 class RsDistrib6D:
 """Generate a Gaussian or uniformly-filled 6D distribution."""
 
-    def __init__(self, numParticles):
+    def __init__(self, num_ptcls):
         # for testing purposes only
         if False:
             print ' '
             print ' ...in RsDistrib6D:__init__'
-            print ' phaseSpace6D object will be instantiated!'
+            print ' phase_space_6d object will be instantiated!'
 
-        self.phaseSpace6D = RsPhaseSpace6D.RsPhaseSpace6D(numParticles)
-        self.phaseSpace6D.checkArray()
+        self.phase_space_6d = RsPhaseSpace6D.RsPhaseSpace6D(num_ptcls)
+        self.phase_space_6d.checkArray()
 
         # set some defaults
         self.maxRmsFactor = 5.0
-        self.distribType = 'gaussian'
+        self.distrib_type = 'gaussian'
         return
 
-    def getPhaseSpace6D(self):
-        return self.phaseSpace6D
+    def get_phase_space_6d(self):
+        return self.phase_space_6d
 
-    def getDistribType(self):
-        return self.distribType
+    def get_distrib_type(self):
+        return self.distrib_type
 
-    def setDistribType(self, distribType):
-        if ( (distribType == 'uniform')  or
-             (distribType == 'gaussian') or
-             (distribType == 'waterbag') or
-             (distribType == 'kv') ):
-            self.distribType = distribType
+    def set_distrib_type(self, distrib_type):
+        if ( (distrib_type == 'uniform')  or
+             (distrib_type == 'gaussian') or
+             (distrib_type == 'waterbag') or
+             (distrib_type == 'kv') ):
+            self.distrib_type = distrib_type
         else:
-            message = 'distribType = ' + self.distribType + ' -- not supported.'
+            message = 'distrib_type = ' + self.distrib_type + ' -- not supported.'
             raise Exception(message)
         return
 
-    def getMaxRmsFactor(self):
-        return self.maxRmsFactor
+    def get_max_rms_fac(self):
+        return self.max_rms_fac
 
-    def setMaxRmsFactor(self, maxRmsFactor):
+    def set_max_rms_fac(self, max_rms_fac):
         # error handling of input data
-        if (maxRmsFactor > 0.0):
-            self.maxRmsFactor = maxRmsFactor
+        if (max_rms_fac > 0.0):
+            self.max_rms_fac = max_rms_fac
         else:
-            message = 'maxRmsFactor = ' + str(maxRmsFactor) + '; must be > 0.'
+            message = 'max_rms_fac = ' + str(max_rms_fac) + '; must be > 0.'
             raise Exception(message)
         return
 
-    def makeUniformDistrib(self):
-        array6D = self.phaseSpace6D.getArray6D()
-        numParticles = self.phaseSpace6D.getNumParticles()
-        numInsideCircle = 0
-        while (numInsideCircle < numParticles):
+    def make_unif_distrib(self):
+        array6D = self.phase_space_6d.getArray6D()
+        num_ptcls = self.phase_space_6d.getNumParticles()
+        num_inside_circle = 0
+        while (num_inside_circle < num_ptcls):
             testX = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
             testY = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
             testZ = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
             testSum = testX**2 + testY**2 + testZ**2
 
             if (testSum < 1.):
-                array6D[0, numInsideCircle] = testX
-                array6D[2, numInsideCircle] = testY
-                array6D[4, numInsideCircle] = testZ
-                numInsideCircle += 1
+                array6D[0, num_inside_circle] = testX
+                array6D[2, num_inside_circle] = testY
+                array6D[4, num_inside_circle] = testZ
+                num_inside_circle += 1
 
-        numInsideCircle = 0
-        while (numInsideCircle < numParticles):
+        num_inside_circle = 0
+        while (num_inside_circle < num_ptcls):
             testPx = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
             testPy = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
             testPz = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
             testSum = testPx**2 + testPy**2 + testPz**2
 
             if (testSum < 1.):
-                array6D[1, numInsideCircle] = testPx
-                array6D[3, numInsideCircle] = testPy
-                array6D[5, numInsideCircle] = testPz
-                numInsideCircle += 1
+                array6D[1, num_inside_circle] = testPx
+                array6D[3, num_inside_circle] = testPy
+                array6D[5, num_inside_circle] = testPz
+                num_inside_circle += 1
 
         return
 
-    def makeGaussianDistrib(self):
-        array6D = self.phaseSpace6D.getArray6D()
-        numParticles = self.phaseSpace6D.getNumParticles()
+    def make_gauss_distrib(self):
+        array6D = self.phase_space_6d.getArray6D()
+        num_ptcls = self.phase_space_6d.getNumParticles()
         for nLoop in range(6):
-            numInsideCircle = 0
-            while (numInsideCircle < numParticles):
+            num_inside_circle = 0
+            while (num_inside_circle < num_ptcls):
                 testPoint = numpy.random.normal(0.0, 1.0, 1)
 
-                if (testPoint*testPoint < self.maxRmsFactor):
-                    array6D[nLoop, numInsideCircle] = testPoint
-                    numInsideCircle += 1
+                if (testPoint*testPoint < self.max_rms_fac):
+                    array6D[nLoop, num_inside_circle] = testPoint
+                    num_inside_circle += 1
         return
 
-    def initialPhaseSpace6D(self):
-        if (self.distribType == 'uniform'):
-            self.makeUniformDistrib()
-        elif (self.distribType == 'gaussian'):
-            self.makeGaussianDistrib()
-        elif (self.distribType == 'waterbag'):
-            message = 'distribType = ''waterbag'' is not yet implemented.'
+    def init_phase_space_6d(self):
+        if (self.distrib_type == 'uniform'):
+            self.make_unif_distrib()
+        elif (self.distrib_type == 'gaussian'):
+            self.make_gauss_distrib()
+        elif (self.distrib_type == 'waterbag'):
+            message = 'distrib_type = ''waterbag'' is not yet implemented.'
             raise Exception(message)
-        elif (self.distribType == 'kv'):
-            message = 'distribType = ''kv'' is not yet implemented.'
+        elif (self.distrib_type == 'kv'):
+            message = 'distrib_type = ''kv'' is not yet implemented.'
             raise Exception(message)
         else:
-            message = 'distribType = ' + self.distribType + ' -- not supported.'
+            message = 'distrib_type = ' + self.distrib_type + ' -- not supported.'
             raise Exception(message)
         return
 
-    def cleanPhaseSpace6D(self):
-        stats6d.sub_avg6d(self.phaseSpace6D.getArray6D())
-        stats6d.rm_correlations6d(self.phaseSpace6D.getArray6D())
-        stats6d.sub_avg6d(self.phaseSpace6D.getArray6D())
-        stats6d.normalize_rms6d(self.phaseSpace6D.getArray6D())
+    def clean_phase_space_6d(self):
+        stats6d.sub_avg6d(self.phase_space_6d.getArray6D())
+        stats6d.rm_correlations6d(self.phase_space_6d.getArray6D())
+        stats6d.sub_avg6d(self.phase_space_6d.getArray6D())
+        stats6d.normalize_rms6d(self.phase_space_6d.getArray6D())
         return
 
-    def roundPhaseSpace6D(self):
-        self.initialPhaseSpace6D()
-        self.cleanPhaseSpace6D()
+    def round_phase_space_6d(self):
+        self.init_phase_space_6d()
+        self.clean_phase_space_6d()
         return
 
-    def calcAverages6D(self):
-        averages = stats6d.calc_avg6d(self.phaseSpace6D.getArray6D())
+    def calc_averages_6d(self):
+        averages = stats6d.calc_avg6d(self.phase_space_6d.getArray6D())
         return averages
 
-    def calcRmsValues6D(self):
-        rmsValues = stats6d.calcRmsValues6D(self.phaseSpace6D.getArray6D())
+    def calc_rms_values_6d(self):
+        rmsValues = stats6d.calcRmsValues6D(self.phase_space_6d.getArray6D())
         return rmsValues
 
-    def calcTwissParams6D(self,twissParams6D):
+    def calc_twiss_params_6d(self,twiss_params_6d):
         alphaRMS = numpy.zeros(3)
         betaRMS  = numpy.zeros(3)
         emitRMS  = numpy.zeros(3)
 
-        sigma = stats6d.calcCorrelations6D(self.phaseSpace6D.getArray6D())
+        sigma = stats6d.calcCorrelations6D(self.phase_space_6d.getArray6D())
         for iLoop in range(3):
             ii = 2 * iLoop
             emitSQ = sigma[ii,ii]*sigma[ii+1,ii+1] - sigma[ii,ii+1]*sigma[ii+1,ii]
 
             if False:
                 print ' '
-                print ' numParticles = ', self.phaseSpace6D.getNumParticles()
-                q6 = self.phaseSpace6D.getArray6D()
+                print ' num_ptcls = ', self.phase_space_6d.getNumParticles()
+                q6 = self.phase_space_6d.getArray6D()
                 print ' 1st particle: ', q6[:,0]
 
             if False:
@@ -169,7 +169,7 @@ class RsDistrib6D:
             if emitSQ <= 0.0:
                 message  = 'Error -- \n\n'
                 message += '  emitSQ = ' + str(emitSQ) + ' must be > zero!\n'
-                message += '  ...in RsDistrib6D:calcTwissParams6D()\n'
+                message += '  ...in RsDistrib6D:calc_twiss_params_6d()\n'
                 message += '  iLoop, ii = ' + str(iLoop) + ', ' + str(ii) + '\n'
                 raise Exception(message)
 
@@ -181,26 +181,24 @@ class RsDistrib6D:
                 print ' '
                 print ' alphaRMS, betaRMS, emitRMS = ', alphaRMS[iLoop], betaRMS[iLoop], emitRMS[iLoop]
 
-        twissParams6D['twissX'] = RsTwiss2D.RsTwiss2D(alphaRMS[0], betaRMS[0], emitRMS[0])
-        twissParams6D['twissY'] = RsTwiss2D.RsTwiss2D(alphaRMS[1], betaRMS[1], emitRMS[1])
-        twissParams6D['twissZ'] = RsTwiss2D.RsTwiss2D(alphaRMS[2], betaRMS[2], emitRMS[2])
+        twiss_params_6d['twissX'] = RsTwiss2D.RsTwiss2D(alphaRMS[0], betaRMS[0], emitRMS[0])
+        twiss_params_6d['twissY'] = RsTwiss2D.RsTwiss2D(alphaRMS[1], betaRMS[1], emitRMS[1])
+        twiss_params_6d['twissZ'] = RsTwiss2D.RsTwiss2D(alphaRMS[2], betaRMS[2], emitRMS[2])
         return
 
-    def makeTwissDist6D(self,twissParams6D, meanMomentum):
-        self.roundPhaseSpace6D()
+    def makeTwissDist6D(self,twiss_params_6d, meanMomentum):
+        self.round_phase_space_6d()
 
-        array6D = self.phaseSpace6D.getArray6D()
+        array6D = self.phase_space_6d.getArray6D()
         temp6D = array6D.copy()
-#        for iLoop in range(6):
-#            for nLoop in range(self.phaseSpace6D.getNumParticles()): array6D[iLoop,nLoop] = 0.0
 
         ii = -1
         for iLoop in range(0,5,2):
 
             ii +=1
-            if   ii==0: twissObject = twissParams6D['twissX']
-            elif ii==1: twissObject = twissParams6D['twissY']
-            elif ii==2: twissObject = twissParams6D['twissZ']
+            if   ii==0: twissObject = twiss_params_6d['twissX']
+            elif ii==1: twissObject = twiss_params_6d['twissY']
+            elif ii==2: twissObject = twiss_params_6d['twissZ']
             else:
                 message = 'Error:  ii = ' + ii + ' -- not valid.'
                 raise Exception(message)
@@ -243,7 +241,7 @@ class RsDistrib6D:
             if 0:
                 print ' sinPhi, cosPhi, rootFac[', ii, '] = ', sinPhi, cosPhi, rootFac
 
-            for nLoop in range(self.phaseSpace6D.getNumParticles()):
+            for nLoop in range(self.phase_space_6d.getNumParticles()):
                 array6D[iLoop  ,nLoop] = rootFac*(fac *cosPhi*temp6D[iLoop,  nLoop] - \
                                                   fInv*sinPhi*temp6D[iLoop+1,nLoop])
                 array6D[iLoop+1,nLoop] = rootFac*(fac *sinPhi*temp6D[iLoop,  nLoop] + \
@@ -256,7 +254,7 @@ class RsDistrib6D:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array6D = self.phaseSpace6D.getArray6D()
+        array6D = self.phase_space_6d.getArray6D()
         array6D[index,:] += offset
 
         return
@@ -266,7 +264,7 @@ class RsDistrib6D:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array6D = self.phaseSpace6D.getArray6D()
+        array6D = self.phase_space_6d.getArray6D()
         array6D[index,:] *= factor
 
         return
