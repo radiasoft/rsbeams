@@ -18,107 +18,92 @@ Subsequent mods are due to RadiaSoft,
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import math
-import scipy.constants
 from collections import OrderedDict
 
 from rsbeams.ptcl_beam import RsDistrib6D
 from rsbeams.ptcl_beam import RsTwiss2D
+from rsbeams.physics import rsconst
 
 class RsPtclBeam6D:
 """Representation of a 6D charged particle distribution."""
 
-    def __init__(self, numPtcls, designMomentumEV, totalCharge, massEV,
-                 alphaX, betaX, emitX, alphaY, betaY, emitY, alphaZ, betaZ, emitZ):
+    def __init__(self, num_ptcls, design_p_ev, total_charge, mass_ev,
+                 alpha_x, beta_x, emit_x, alpha_y, beta_y, emit_y, alpha_z, beta_z, emit_z):
 
         # set the specified data
-        self.designMomentumEV = designMomentumEV
-        self.totalCharge = totalCharge
-        self.massEV = massEV
+        self.design_p_ev = design_p_ev
+        self.total_charge = total_charge
+        self.mass_ev = mass_ev
 
         # instantiate local class variables
-        self.distrib6D = RsDistrib6D.RsDistrib6D(numPtcls)
-        self.twissParams6D = OrderedDict( [('twissX', RsTwiss2D(alphaX, betaX, emitX)), \
-                                           ('twissY', RsTwiss2D(alphaX, betaX, emitX)), \
-                                           ('twissZ', RsTwiss2D(alphaX, betaX, emitX))] )
-
-        # define useful temporary variables
-        self.rt2opi = math.sqrt(2./math.pi)
-
-        # specify physical constants
-        self.c     = scipy.constants.c          # speed of light [m/s]
-        self.cSq   = self.c**2            # speed of light squared
-        self.cInv  = 1./self.c            # one over the speed of light
-        self.mu0   = scipy.constants.mu_0    # permeability of free space
-        self.eps0  = scipy.constants.epsilon_0 # permittivity of free space
-        self.eMass   = scipy.constants.m_e     # electron mass [kG]
-        self.eCharge = scipy.constants.e   # elementary charge [C]
-        self.eMassEV = self.eMass*self.cSq/self.eCharge  # eMass [eV]
-
+        self.distrib6D = RsDistrib6D.RsDistrib6D(num_ptcls)
+        self.twiss6d = OrderedDict( [('twiss_x', RsTwiss2D(alpha_x, beta_x, emit_x)), \
+                                           ('twiss_y', RsTwiss2D(alpha_y, beta_y, emit_y)), \
+                                           ('twiss_z', RsTwiss2D(alpha_z, beta_z, emit_z))] )
         return
 
-    def getDesignMomentumEV(self):
-        return self.designMomentumEV
+    def get_design_p_ev(self):
+        return self.design_p_ev
 
-    def setDesignMomentumEV(self, designMomentumEV):
-        if (designMomentumEV > 0.):
-            self.designMomentumEV = designMomentumEV
+    def set_design_p_ev(self, design_p_ev):
+        if (design_p_ev > 0.):
+            self.design_p_ev = design_p_ev
         else:
-            message = 'ERROR!  designMomentumEV <= 0.: ' + str(designMomentumEV)
+            message = 'ERROR!  design_p_ev <= 0.: ' + str(design_p_ev)
             raise Exception(message)
         return
 
-    def getTotalCharge(self):
-        return self.totalCharge
+    def get_total_charge(self):
+        return self.total_charge
 
-    def setTotalCharge(self, totalCharge):
-        if (totalCharge > 0.):
-            self.totalCharge = totalCharge
+    def set_total_charge(self, total_charge):
+        if (total_charge > 0.):
+            self.total_charge = total_charge
         else:
-            message = 'ERROR!  totalCharge <= 0.: ' + str(totalCharge)
+            message = 'ERROR!  total_charge <= 0.: ' + str(total_charge)
             raise Exception(message)
         return
 
-    def getMassEV(self):
-        return self.massEV
+    def get_mass_ev(self):
+        return self.mass_ev
 
-    def setMassEV(self, massEV):
-        if (massEV > 0.):
-            self.massEV = massEV
+    def set_mass_ev(self, mass_ev):
+        if (mass_ev > 0.):
+            self.mass_ev = mass_ev
         else:
-            message = 'ERROR!  massEV <= 0.: ' + str(massEV)
+            message = 'ERROR!  mass_ev <= 0.: ' + str(mass_ev)
             raise Exception(message)
         return
 
-    def getBeta0Gamma0(self):
-        return self.designMomentumEV / self.massEV
+    def get_beta0_gamma0(self):
+        return self.design_p_ev / self.mass_ev
 
-    def getGamma0(self):
-        return math.sqrt(self.getBeta0Gamma0()**2 +1.)
+    def get_gamma0(self):
+        return math.sqrt(self.get_beta0_gamma0()**2 +1.)
 
-    def getBeta0(self):
-        return self.getBeta0Gamma0() / self.getGamma0()
+    def get_beta0(self):
+        return self.get_beta0_gamma0() / self.get_gamma0()
 
-    # allowed values: 'twissX', 'twissY', 'twissZ'
-    def getTwissParamsByName2D(self, twissName):
-        return self.twissParams6D[twissName]
+    # allowed values: 'twiss_x', 'twiss_y', 'twiss_z'
+    def get_twiss2d_by_name(self, twiss_name):
+        return self.twiss6d[twiss_name]
 
-    def setTwissParamsByName2D(self, alpha, beta, emittance, twissName):
-        self.twissParams6D[twissName] = RsTwiss2D.RsTwiss2D(alpha, beta, emittance)
+    def set_twiss2d_by_name(self, alpha, beta, emit, twiss_name):
+        self.twiss6d[twiss_name] = RsTwiss2D.RsTwiss2D(alpha, beta, emit)
         return
 
-    def calcTwissParams6D(self):
-        self.distrib6D.calcTwissParams6D(self.twissParams6D)
+    def calc_twiss6d(self):
+        self.distrib6D.calc_twiss6d(self.twiss6d)
         return
 
     def getDistrib6D(self):
         return self.distrib6D
 
-    def makePtclPhaseSpace6D(self, meanMomentum):
-        self.distrib6D.makeTwissDist6D(self.twissParams6D, meanMomentum)
+    def make_ptcl_phase_space_6d(self, mean_p_ev):
+        self.distrib6D.makeTwissDist6D(self.twiss6d, mean_p_ev)
         return
 
-    def getCurrent(self):
-        s=self.distrib6D.calcRmsValues6D()[4]
-        t=s/(self.getBeta0()*self.c)
-        I = self.totalCharge/t
-        return I
+    def get_peak_current_rms(self):
+        rms_length = self.distrib6D.calcRmsValues6D()[4]
+        rms_time = rms_length / (self.get_beta0()*rsconst.c)
+        return self.total_charge/rms_time

@@ -140,7 +140,7 @@ class RsDistrib6D:
         rmsValues = stats6d.calc_rms6d(self.phase_space_6d.get_array_6d())
         return rmsValues
 
-    def calc_twiss_params_6d(self,twiss_params_6d):
+    def calc_twiss6d(self,twiss6d):
         alpha_rms = numpy.zeros(3)
         beta_rms  = numpy.zeros(3)
         emit_rms  = numpy.zeros(3)
@@ -167,7 +167,7 @@ class RsDistrib6D:
             if emitSQ <= 0.0:
                 message  = 'Error -- \n\n'
                 message += '  emitSQ = ' + str(emitSQ) + ' must be > zero!\n'
-                message += '  ...in RsDistrib6D:calc_twiss_params_6d()\n'
+                message += '  ...in RsDistrib6D:calc_twiss6d()\n'
                 message += '  iLoop, ii = ' + str(iLoop) + ', ' + str(ii) + '\n'
                 raise Exception(message)
 
@@ -179,12 +179,12 @@ class RsDistrib6D:
                 print ' '
                 print ' alpha_rms, beta_rms, emit_rms = ', alpha_rms[iLoop], beta_rms[iLoop], emit_rms[iLoop]
 
-        twiss_params_6d['twissX'] = RsTwiss2D.RsTwiss2D(alpha_rms[0], beta_rms[0], emit_rms[0])
-        twiss_params_6d['twissY'] = RsTwiss2D.RsTwiss2D(alpha_rms[1], beta_rms[1], emit_rms[1])
-        twiss_params_6d['twissZ'] = RsTwiss2D.RsTwiss2D(alpha_rms[2], beta_rms[2], emit_rms[2])
+        twiss6d['twissX'] = RsTwiss2D.RsTwiss2D(alpha_rms[0], beta_rms[0], emit_rms[0])
+        twiss6d['twissY'] = RsTwiss2D.RsTwiss2D(alpha_rms[1], beta_rms[1], emit_rms[1])
+        twiss6d['twissZ'] = RsTwiss2D.RsTwiss2D(alpha_rms[2], beta_rms[2], emit_rms[2])
         return
 
-    def make_twiss_dist_6d(self,twiss_params_6d, meanMomentum):
+    def make_twiss_dist_6d(self,twiss6d, mean_p_ev):
         self.round_phase_space_6d()
 
         array_6d = self.phase_space_6d.get_array_6d()
@@ -194,9 +194,9 @@ class RsDistrib6D:
         for iLoop in range(0,5,2):
 
             ii +=1
-            if   ii==0: twissObject = twiss_params_6d['twissX']
-            elif ii==1: twissObject = twiss_params_6d['twissY']
-            elif ii==2: twissObject = twiss_params_6d['twissZ']
+            if   ii==0: twissObject = twiss6d['twissX']
+            elif ii==1: twissObject = twiss6d['twissY']
+            elif ii==2: twissObject = twiss6d['twissZ']
             else:
                 message = 'Error:  ii = ' + ii + ' -- not valid.'
                 raise Exception(message)
@@ -244,8 +244,8 @@ class RsDistrib6D:
                                                   fInv*sinPhi*temp6D[iLoop+1,nLoop])
                 array_6d[iLoop+1,nLoop] = rootFac*(fac *sinPhi*temp6D[iLoop,  nLoop] + \
                                                   fInv*cosPhi*temp6D[iLoop+1,nLoop])
-        self.multiply_distrib_component(meanMomentum, 5)
-        self.offset_distrib_component(meanMomentum, 5)
+        self.multiply_distrib_component(mean_p_ev, 5)
+        self.offset_distrib_component(mean_p_ev, 5)
 
     def offset_distrib_component(self,offset,index):
         if index < 0 or index > 5:
