@@ -11,7 +11,7 @@ Subsequent mods are due to RadiaSoft,
 """
 import math
 import numpy
-import scipy as sp
+import scipy
 
 def calc_avg6d(array6D):
     return scipy.average(array6D, axis=1)
