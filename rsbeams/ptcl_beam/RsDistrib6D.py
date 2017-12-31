@@ -16,7 +16,7 @@ from rsbeams.ptcl_beam import RsPhaseSpace6D
 from rsbeams.statistics import stats6d
 
 class RsDistrib6D:
-"""Generate a Gaussian or uniformly-filled 6D distribution."""
+    """Generate a Gaussian or uniformly-filled 6D distribution."""
 
     def __init__(self, num_ptcls):
         # for testing purposes only
@@ -26,7 +26,7 @@ class RsDistrib6D:
             print ' phase_space_6d object will be instantiated!'
 
         self.phase_space_6d = RsPhaseSpace6D.RsPhaseSpace6D(num_ptcls)
-        self.phase_space_6d.checkArray()
+        self.phase_space_6d.check_array()
 
         # set some defaults
         self.maxRmsFactor = 5.0
@@ -41,12 +41,13 @@ class RsDistrib6D:
 
     def set_distrib_type(self, distrib_type):
         if ( (distrib_type == 'uniform')  or
-             (distrib_type == 'gaussian') or
-             (distrib_type == 'waterbag') or
-             (distrib_type == 'kv') ):
+             (distrib_type == 'gaussian')):
             self.distrib_type = distrib_type
         else:
-            message = 'distrib_type = ' + self.distrib_type + ' -- not supported.'
+            message = '\n\nERROR --'
+            message += '\n    distrib_type is specified as "' + distrib_type + '", which is not supported.'
+            message += '\n    Only "uniform" and "gaussian" are allowed.'
+            message += '\n'
             raise Exception(message)
         return
 
@@ -63,8 +64,8 @@ class RsDistrib6D:
         return
 
     def make_unif_distrib(self):
-        array_6d = self.phase_space_6d.getArray6D()
-        num_ptcls = self.phase_space_6d.getNumParticles()
+        array_6d = self.phase_space_6d.get_array_6d()
+        num_ptcls = self.phase_space_6d.get_num_ptcls()
         num_inside_circle = 0
         while (num_inside_circle < num_ptcls):
             test_x = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
@@ -94,8 +95,8 @@ class RsDistrib6D:
         return
 
     def make_gauss_distrib(self):
-        array_6d = self.phase_space_6d.getArray6D()
-        num_ptcls = self.phase_space_6d.getNumParticles()
+        array_6d = self.phase_space_6d.get_array_6d()
+        num_ptcls = self.phase_space_6d.get_num_ptcls()
         for nLoop in range(6):
             num_inside_circle = 0
             while (num_inside_circle < num_ptcls):
@@ -111,22 +112,19 @@ class RsDistrib6D:
             self.make_unif_distrib()
         elif (self.distrib_type == 'gaussian'):
             self.make_gauss_distrib()
-        elif (self.distrib_type == 'waterbag'):
-            message = 'distrib_type = ''waterbag'' is not yet implemented.'
-            raise Exception(message)
-        elif (self.distrib_type == 'kv'):
-            message = 'distrib_type = ''kv'' is not yet implemented.'
-            raise Exception(message)
         else:
-            message = 'distrib_type = ' + self.distrib_type + ' -- not supported.'
+            message = '\n\nERROR --'
+            message += '\n    distrib_type is specified as "' + self.distrib_type + '", which is not supported.'
+            message += '\n    Only "uniform" and "gaussian" are allowed.'
+            message += '\n'
             raise Exception(message)
         return
 
     def clean_phase_space_6d(self):
-        stats6d.sub_avg6d(self.phase_space_6d.getArray6D())
-        stats6d.rm_correlations6d(self.phase_space_6d.getArray6D())
-        stats6d.sub_avg6d(self.phase_space_6d.getArray6D())
-        stats6d.normalize_rms6d(self.phase_space_6d.getArray6D())
+        stats6d.sub_avg6d(self.phase_space_6d.get_array_6d())
+        stats6d.rm_correlations6d(self.phase_space_6d.get_array_6d())
+        stats6d.sub_avg6d(self.phase_space_6d.get_array_6d())
+        stats6d.normalize_rms6d(self.phase_space_6d.get_array_6d())
         return
 
     def round_phase_space_6d(self):
@@ -135,11 +133,11 @@ class RsDistrib6D:
         return
 
     def calc_averages_6d(self):
-        averages = stats6d.calc_avg6d(self.phase_space_6d.getArray6D())
+        averages = stats6d.calc_avg6d(self.phase_space_6d.get_array_6d())
         return averages
 
     def calc_rms_values_6d(self):
-        rmsValues = stats6d.calcRmsValues6D(self.phase_space_6d.getArray6D())
+        rmsValues = stats6d.calc_rms6d(self.phase_space_6d.get_array_6d())
         return rmsValues
 
     def calc_twiss_params_6d(self,twiss_params_6d):
@@ -147,15 +145,15 @@ class RsDistrib6D:
         beta_rms  = numpy.zeros(3)
         emit_rms  = numpy.zeros(3)
 
-        sigma = stats6d.calcCorrelations6D(self.phase_space_6d.getArray6D())
+        sigma = stats6d.calc_correlations6d(self.phase_space_6d.get_array_6d())
         for iLoop in range(3):
             ii = 2 * iLoop
             emitSQ = sigma[ii,ii]*sigma[ii+1,ii+1] - sigma[ii,ii+1]*sigma[ii+1,ii]
 
             if False:
                 print ' '
-                print ' num_ptcls = ', self.phase_space_6d.getNumParticles()
-                q6 = self.phase_space_6d.getArray6D()
+                print ' num_ptcls = ', self.phase_space_6d.get_num_ptcls()
+                q6 = self.phase_space_6d.get_array_6d()
                 print ' 1st particle: ', q6[:,0]
 
             if False:
@@ -189,7 +187,7 @@ class RsDistrib6D:
     def make_twiss_dist_6d(self,twiss_params_6d, meanMomentum):
         self.round_phase_space_6d()
 
-        array_6d = self.phase_space_6d.getArray6D()
+        array_6d = self.phase_space_6d.get_array_6d()
         temp6D = array_6d.copy()
 
         ii = -1
@@ -254,7 +252,7 @@ class RsDistrib6D:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array_6d = self.phase_space_6d.getArray6D()
+        array_6d = self.phase_space_6d.get_array_6d()
         array_6d[index,:] += offset
 
         return
@@ -264,7 +262,7 @@ class RsDistrib6D:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array_6d = self.phase_space_6d.getArray6D()
+        array_6d = self.phase_space_6d.get_array_6d()
         array_6d[index,:] *= factor
 
         return
