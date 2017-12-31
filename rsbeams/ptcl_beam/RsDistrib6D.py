@@ -63,46 +63,46 @@ class RsDistrib6D:
         return
 
     def make_unif_distrib(self):
-        array6D = self.phase_space_6d.getArray6D()
+        array_6d = self.phase_space_6d.getArray6D()
         num_ptcls = self.phase_space_6d.getNumParticles()
         num_inside_circle = 0
         while (num_inside_circle < num_ptcls):
-            testX = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
-            testY = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
-            testZ = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
-            testSum = testX**2 + testY**2 + testZ**2
+            test_x = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
+            test_y = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
+            test_z = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
+            test_sum = test_x**2 + test_y**2 + test_z**2
 
-            if (testSum < 1.):
-                array6D[0, num_inside_circle] = testX
-                array6D[2, num_inside_circle] = testY
-                array6D[4, num_inside_circle] = testZ
+            if (test_sum < 1.):
+                array_6d[0, num_inside_circle] = test_x
+                array_6d[2, num_inside_circle] = test_y
+                array_6d[4, num_inside_circle] = test_z
                 num_inside_circle += 1
 
         num_inside_circle = 0
         while (num_inside_circle < num_ptcls):
-            testPx = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
-            testPy = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
-            testPz = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
-            testSum = testPx**2 + testPy**2 + testPz**2
+            test_px = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
+            test_py = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
+            test_pz = 2. * numpy.random.uniform(0.0,1.0,1) - 1.
+            test_sum = test_px**2 + test_py**2 + test_pz**2
 
-            if (testSum < 1.):
-                array6D[1, num_inside_circle] = testPx
-                array6D[3, num_inside_circle] = testPy
-                array6D[5, num_inside_circle] = testPz
+            if (test_sum < 1.):
+                array_6d[1, num_inside_circle] = test_px
+                array_6d[3, num_inside_circle] = test_py
+                array_6d[5, num_inside_circle] = test_pz
                 num_inside_circle += 1
 
         return
 
     def make_gauss_distrib(self):
-        array6D = self.phase_space_6d.getArray6D()
+        array_6d = self.phase_space_6d.getArray6D()
         num_ptcls = self.phase_space_6d.getNumParticles()
         for nLoop in range(6):
             num_inside_circle = 0
             while (num_inside_circle < num_ptcls):
-                testPoint = numpy.random.normal(0.0, 1.0, 1)
+                test_point = numpy.random.normal(0.0, 1.0, 1)
 
-                if (testPoint*testPoint < self.max_rms_fac):
-                    array6D[nLoop, num_inside_circle] = testPoint
+                if (test_point*test_point < self.max_rms_fac):
+                    array_6d[nLoop, num_inside_circle] = test_point
                     num_inside_circle += 1
         return
 
@@ -143,9 +143,9 @@ class RsDistrib6D:
         return rmsValues
 
     def calc_twiss_params_6d(self,twiss_params_6d):
-        alphaRMS = numpy.zeros(3)
-        betaRMS  = numpy.zeros(3)
-        emitRMS  = numpy.zeros(3)
+        alpha_rms = numpy.zeros(3)
+        beta_rms  = numpy.zeros(3)
+        emit_rms  = numpy.zeros(3)
 
         sigma = stats6d.calcCorrelations6D(self.phase_space_6d.getArray6D())
         for iLoop in range(3):
@@ -173,24 +173,24 @@ class RsDistrib6D:
                 message += '  iLoop, ii = ' + str(iLoop) + ', ' + str(ii) + '\n'
                 raise Exception(message)
 
-            emitRMS[iLoop]  =  math.sqrt(emitSQ)
-            betaRMS[iLoop]  =  sigma[ii,ii]   / emitRMS[iLoop]
-            alphaRMS[iLoop] = -sigma[ii,ii+1] / emitRMS[iLoop]
+            emit_rms[iLoop]  =  math.sqrt(emitSQ)
+            beta_rms[iLoop]  =  sigma[ii,ii]   / emit_rms[iLoop]
+            alpha_rms[iLoop] = -sigma[ii,ii+1] / emit_rms[iLoop]
 
             if False:
                 print ' '
-                print ' alphaRMS, betaRMS, emitRMS = ', alphaRMS[iLoop], betaRMS[iLoop], emitRMS[iLoop]
+                print ' alpha_rms, beta_rms, emit_rms = ', alpha_rms[iLoop], beta_rms[iLoop], emit_rms[iLoop]
 
-        twiss_params_6d['twissX'] = RsTwiss2D.RsTwiss2D(alphaRMS[0], betaRMS[0], emitRMS[0])
-        twiss_params_6d['twissY'] = RsTwiss2D.RsTwiss2D(alphaRMS[1], betaRMS[1], emitRMS[1])
-        twiss_params_6d['twissZ'] = RsTwiss2D.RsTwiss2D(alphaRMS[2], betaRMS[2], emitRMS[2])
+        twiss_params_6d['twissX'] = RsTwiss2D.RsTwiss2D(alpha_rms[0], beta_rms[0], emit_rms[0])
+        twiss_params_6d['twissY'] = RsTwiss2D.RsTwiss2D(alpha_rms[1], beta_rms[1], emit_rms[1])
+        twiss_params_6d['twissZ'] = RsTwiss2D.RsTwiss2D(alpha_rms[2], beta_rms[2], emit_rms[2])
         return
 
-    def makeTwissDist6D(self,twiss_params_6d, meanMomentum):
+    def make_twiss_dist_6d(self,twiss_params_6d, meanMomentum):
         self.round_phase_space_6d()
 
-        array6D = self.phase_space_6d.getArray6D()
-        temp6D = array6D.copy()
+        array_6d = self.phase_space_6d.getArray6D()
+        temp6D = array_6d.copy()
 
         ii = -1
         for iLoop in range(0,5,2):
@@ -242,29 +242,29 @@ class RsDistrib6D:
                 print ' sinPhi, cosPhi, rootFac[', ii, '] = ', sinPhi, cosPhi, rootFac
 
             for nLoop in range(self.phase_space_6d.getNumParticles()):
-                array6D[iLoop  ,nLoop] = rootFac*(fac *cosPhi*temp6D[iLoop,  nLoop] - \
+                array_6d[iLoop  ,nLoop] = rootFac*(fac *cosPhi*temp6D[iLoop,  nLoop] - \
                                                   fInv*sinPhi*temp6D[iLoop+1,nLoop])
-                array6D[iLoop+1,nLoop] = rootFac*(fac *sinPhi*temp6D[iLoop,  nLoop] + \
+                array_6d[iLoop+1,nLoop] = rootFac*(fac *sinPhi*temp6D[iLoop,  nLoop] + \
                                                   fInv*cosPhi*temp6D[iLoop+1,nLoop])
-        self.multiplyDistribComp(meanMomentum, 5)
-        self.offsetDistribComp(meanMomentum, 5)
+        self.multiply_distrib_component(meanMomentum, 5)
+        self.offset_distrib_component(meanMomentum, 5)
 
-    def offsetDistribComp(self,offset,index):
+    def offset_distrib_component(self,offset,index):
         if index < 0 or index > 5:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array6D = self.phase_space_6d.getArray6D()
-        array6D[index,:] += offset
+        array_6d = self.phase_space_6d.getArray6D()
+        array_6d[index,:] += offset
 
         return
 
-    def multiplyDistribComp(self,factor,index):
+    def multiply_distrib_component(self,factor,index):
         if index < 0 or index > 5:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array6D = self.phase_space_6d.getArray6D()
-        array6D[index,:] *= factor
+        array_6d = self.phase_space_6d.getArray6D()
+        array_6d[index,:] *= factor
 
         return
