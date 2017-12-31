@@ -165,3 +165,14 @@ def jacobi_eigen_solver6d(sigma6D):
 
     # No convergence after 50 iterations, so give up!
     raise Exception("Too many iterations in routine jacobi_eigen_solver6d")
+
+def specify_significant_figures(float_value, num_sig_figs):
+    """Round float_value to num_sig_figs significant figures."""
+    try:
+        # Find my_mult, my_exp such that float_value = my_mult*10^my_exp
+        #   such that  1. <= my_mult < 10.
+        my_exp = math.floor(math.log10(abs(float_value)))
+        my_mult = float_value/(10**my_exp)
+        return round(my_mult, num_sig_figs-1)*(10**my_exp)
+    except ValueError:
+        return 0
