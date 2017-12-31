@@ -10,23 +10,23 @@ Subsequent mods are due to RadiaSoft,
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-class RbTwiss2D:
+class RsTwiss2D:
     """Data holding class for 2D Twiss parameters."""
 
-    def __init__(self, alphaRMS, betaRMS, emitRMS):
-        self.emitRMS  = emitRMS
-        self.betaRMS  = betaRMS
-        self.alphaRMS = alphaRMS
-        self.gammaRMS = (1.0 + alphaRMS**2) / betaRMS
+    def __init__(self, alpha_rms, beta_rms, emit_rms):
+        self.emit_rms  = emit_rms
+        self.beta_rms  = beta_rms
+        self.alpha_rms = alpha_rms
+        self.gamma_rms = (1.0 + alpha_rms**2) / beta_rms
 
-    def getEmitRMS(self):
-        return self.emitRMS
+    def get_emit_rms(self):
+        return self.emit_rms
 
-    def getBetaRMS(self):
-        return self.betaRMS
+    def get_beta_rms(self):
+        return self.beta_rms
 
-    def getAlphaRMS(self):
-        return self.alphaRMS
+    def get_alpha_rms(self):
+        return self.alpha_rms
 
-    def getGammaRMS(self):
-        return self.gammaRMS
+    def get_gamma_rms(self):
+        return self.gamma_rms
