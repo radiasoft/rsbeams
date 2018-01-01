@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-import pytest
+
+import os
 import numpy
 from rsbeams.physics import rsconst
 from rsbeams.statistics import stats6d
@@ -7,7 +8,48 @@ from rsbeams.ptcl_beam import RsPtclBeam6D
 from rsbeams.ptcl_beam import RsPhaseSpace6D
 from rsbeams.matplotlib import RsPlotPhaseSpace6D
 
+def save_plot_and_check(plot_obj, file_name, force_error=False):
+    """Encapsulate some file handling to avoid code repetition"""
+
+    # File cleanup
+    try:
+        os.remove(file_name)
+    except OSError:
+        pass
+
+    # save the plot to specified file name
+    plot_obj.save_plots(file_name)
+
+    # clear plotting object for next use
+    plot_obj.clear_plots()
+
+    # delete file for no good reason (testing the test)
+    if (force_error == True):
+        try:
+            os.remove(file_name)
+        except OSError:
+            pass
+
+    # is plot there with expected size?
+    if os.path.exists(file_name):
+#        print('File "',file_name,'" does exist.')
+#        print(os.stat(file_name))
+#        print('size: ', os.stat(file_name).st_size)
+        assert(os.stat(file_name).st_size > 33000)
+        assert(os.stat(file_name).st_size < 42000)
+    else:
+        # File doesn't exist; something went wrong
+        assert 0, '\n   File "'+file_name+'" does NOT exist.'
+
+    return
+
+
 def test_beam_plot():
+    """Test the plotting of beams"""
+
+    # Decide if you want interactive plotting
+    # Always use 'is_interactive = False' for testing
+    is_interactive = False
 
     # Instantiate an arbitrary e- bunch
     num_ptcls = 1000
@@ -44,19 +86,26 @@ def test_beam_plot():
     my_plotter = RsPlotPhaseSpace6D.RsPlotPhaseSpace6D(my_space)
 
     # Generate an x-px scatter plot
-    my_plotter.set_title('x-px projection')
+    my_plotter.set_title('x-xp projection')
     my_plotter.plot_data6d(0,1)
+    if (is_interactive == False):
+        save_plot_and_check(my_plotter, 'beam_plot_test_xxp.png')
 
     # Generate an x-px scatter plot (after the drift)
-    my_plotter.set_title('y-py projection')
+    my_plotter.set_title('y-yp projection')
     my_plotter.plot_data6d(2,3)
+    if (is_interactive == False):
+        save_plot_and_check(my_plotter, 'beam_plot_test_yyp.png')
 
     # Generate a y-pz scatter plot (after the drift)
-    my_plotter.set_title('y-pz projection')
+    my_plotter.set_title('y-dp/p projection')
     my_plotter.plot_data6d(2,5)
+    if (is_interactive == False):
+#        save_plot_and_check(my_plotter, 'beam_plot_test_ydpop.png', True)
+        save_plot_and_check(my_plotter, 'beam_plot_test_ydpop.png')
 
-    # Render the plots
-    my_plotter.show_plots()
+    # Render all plots to the screen
+    if (is_interactive == True):
+        my_plotter.show_plots()
 
-
-test_beam_plot()
+# test_beam_plot()

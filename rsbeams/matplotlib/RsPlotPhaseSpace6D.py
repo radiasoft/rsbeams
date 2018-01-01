@@ -29,7 +29,7 @@ class RsPlotPhaseSpace6D:
 
         self.data6d = phaseSpace6D.get_array_6d()
 
-        self.label=numpy.array(['x [m]', 'px', 'y [m]', 'py', 'z [m]', 'pz'])
+        self.label=numpy.array(['x [m]', 'px/p0', 'y [m]', 'py/p0', 's [m]', 'dp/p0'])
         self.title='no plot title specified'
         self.figNum = 0
         return
@@ -86,4 +86,16 @@ class RsPlotPhaseSpace6D:
 
     def show_plots(self):
         pyplot.show()
+        return
+
+    def clear_plots(self):
+        pyplot.clf()
+        pyplot.cla()
+        pyplot.close()
+        return
+
+    def save_plots(self,file_name):
+        pyplot.savefig(file_name, bbox_inches='tight')
+        pyplot.clf()
+        pyplot.cla()
         return
