@@ -27,7 +27,7 @@ from rsbeams.physics import rsconst
 class RsPtclBeam6D:
     """Representation of a 6D charged particle distribution."""
 
-    def __init__(self, num_ptcls, design_p_ev, total_charge_c, mass_ev,
+    def __init__(self, num_ptcls, design_p_ev, total_charge_c, mass_ev, dist_type, max_rms_fac, \
                  alpha_x, beta_x, emit_x, alpha_y, beta_y, emit_y, alpha_z, beta_z, emit_z):
 
         # set the specified data
@@ -40,43 +40,19 @@ class RsPtclBeam6D:
                                      ('twiss_y', RsTwiss2D.RsTwiss2D(alpha_y, beta_y, emit_y)), \
                                      ('twiss_z', RsTwiss2D.RsTwiss2D(alpha_z, beta_z, emit_z))] )
 
-        self.distrib6d = RsDistrib6D.RsDistrib6D(num_ptcls)
-        self.make_ptcl_phase_space_6d()
+        self.distrib6d = RsDistrib6D.RsDistrib6D(num_ptcls, dist_type, max_rms_fac)
+        self.distrib6d.make_twiss_dist_6d(self.twiss6d, self.design_p_ev)
 
         return
 
     def get_design_p_ev(self):
         return self.design_p_ev
 
-    def set_design_p_ev(self, design_p_ev):
-        if (design_p_ev > 0.):
-            self.design_p_ev = design_p_ev
-        else:
-            message = 'ERROR!  design_p_ev <= 0.: ' + str(design_p_ev)
-            raise Exception(message)
-        return
-
     def get_total_charge_c(self):
         return self.total_charge_c
 
-    def set_total_charge_c(self, total_charge_c):
-        if (total_charge_c > 0.):
-            self.total_charge_c = total_charge_c
-        else:
-            message = 'ERROR!  total_charge_c <= 0.: ' + str(total_charge_c)
-            raise Exception(message)
-        return
-
     def get_mass_ev(self):
         return self.mass_ev
-
-    def set_mass_ev(self, mass_ev):
-        if (mass_ev > 0.):
-            self.mass_ev = mass_ev
-        else:
-            message = 'ERROR!  mass_ev <= 0.: ' + str(mass_ev)
-            raise Exception(message)
-        return
 
     def get_beta0_gamma0(self):
         return self.design_p_ev / self.mass_ev
@@ -91,20 +67,12 @@ class RsPtclBeam6D:
     def get_twiss2d_by_name(self, twiss_name):
         return self.twiss6d[twiss_name]
 
-    def set_twiss2d_by_name(self, alpha, beta, emit, twiss_name):
-        self.twiss6d[twiss_name] = RsTwiss2D.RsTwiss2D(alpha, beta, emit)
-        return
-
     def calc_twiss6d(self):
         self.distrib6d.calc_twiss6d(self.twiss6d)
         return
 
     def getDistrib6D(self):
         return self.distrib6d
-
-    def make_ptcl_phase_space_6d(self):
-        self.distrib6d.make_twiss_dist_6d(self.twiss6d, self.design_p_ev)
-        return
 
     def get_peak_current_rms(self):
         rms_length = self.distrib6d.calc_rms_values_6d()[4]

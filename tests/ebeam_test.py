@@ -10,6 +10,8 @@ def test_electron_beam():
     design_p_ev = 271
     total_charge_c = 3.05
     mass_ev = rsconst.m_e
+    dist_type = 'gaussian'
+    max_rms_fac = 4.9
     alpha_x = 1.3     # []
     beta_x = 21.1     # [m/rad]
     emit_x = 1.7e-06  # [m-rad]
@@ -22,9 +24,12 @@ def test_electron_beam():
 
     my_ebeam = RsPtclBeam6D.RsPtclBeam6D(num_ptcls, design_p_ev, \
                                          total_charge_c, mass_ev, \
+                                         dist_type, max_rms_fac, \
                                          alpha_x, beta_x, emit_x, \
                                          alpha_y, beta_y, emit_y, \
                                          alpha_z, beta_z, emit_z )
+
+
 
 
 test_electron_beam()

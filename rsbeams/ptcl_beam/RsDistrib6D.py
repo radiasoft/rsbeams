@@ -18,19 +18,34 @@ from rsbeams.statistics import stats6d
 class RsDistrib6D:
     """Generate a Gaussian or uniformly-filled 6D distribution."""
 
-    def __init__(self, num_ptcls):
-        # for testing purposes only
-        if False:
-            print ' '
-            print ' ...in RsDistrib6D:__init__'
-            print ' phase_space_6d object will be instantiated!'
+    def __init__(self, num_ptcls, distrib_type, max_rms_fac):
 
         self.phase_space_6d = RsPhaseSpace6D.RsPhaseSpace6D(num_ptcls)
         self.phase_space_6d.check_array()
 
-        # set some defaults
-        self.max_rms_fac = 5.0
-        self.distrib_type = 'gaussian'
+        if ( (distrib_type != 'uniform') and
+             (distrib_type != 'gaussian') ):
+            message = '\n\nERROR --'
+            message += '\n    distrib_type is specified as "' + self.distrib_type + '", which is not supported.'
+            message += '\n    Only "uniform" and "gaussian" are allowed.'
+            message += '\n'
+            raise Exception(message)
+        else:
+            self.distrib_type = distrib_type
+
+        if (max_rms_fac > 0.0):
+            self.max_rms_fac = max_rms_fac
+        else:
+            message = 'max_rms_fac = ' + str(max_rms_fac) + '; must be > 0.'
+            raise Exception(message)
+
+        if (self.distrib_type == 'uniform'):
+            self.make_unif_distrib()
+
+        if (self.distrib_type == 'gaussian'):
+            self.make_gauss_distrib()
+
+        self.clean_phase_space_6d()
         return
 
     def get_phase_space_6d(self):
@@ -39,32 +54,11 @@ class RsDistrib6D:
     def get_distrib_type(self):
         return self.distrib_type
 
-    def set_distrib_type(self, distrib_type):
-        if ( (distrib_type == 'uniform')  or
-             (distrib_type == 'gaussian')):
-            self.distrib_type = distrib_type
-        else:
-            message = '\n\nERROR --'
-            message += '\n    distrib_type is specified as "' + distrib_type + '", which is not supported.'
-            message += '\n    Only "uniform" and "gaussian" are allowed.'
-            message += '\n'
-            raise Exception(message)
-        return
-
     def get_max_rms_fac(self):
         return self.max_rms_fac
 
-    def set_max_rms_fac(self, max_rms_fac):
-        # error handling of input data
-        if (max_rms_fac > 0.0):
-            self.max_rms_fac = max_rms_fac
-        else:
-            message = 'max_rms_fac = ' + str(max_rms_fac) + '; must be > 0.'
-            raise Exception(message)
-        return
-
     def make_unif_distrib(self):
-        array_6d = self.phase_space_6d.get_array_6d()
+        array6d = self.phase_space_6d.get_array_6d()
         num_ptcls = self.phase_space_6d.get_num_ptcls()
         num_inside_circle = 0
         while (num_inside_circle < num_ptcls):
@@ -74,9 +68,9 @@ class RsDistrib6D:
             test_sum = test_x**2 + test_y**2 + test_z**2
 
             if (test_sum < 1.):
-                array_6d[0, num_inside_circle] = test_x
-                array_6d[2, num_inside_circle] = test_y
-                array_6d[4, num_inside_circle] = test_z
+                array6d[0, num_inside_circle] = test_x
+                array6d[2, num_inside_circle] = test_y
+                array6d[4, num_inside_circle] = test_z
                 num_inside_circle += 1
 
         num_inside_circle = 0
@@ -87,15 +81,15 @@ class RsDistrib6D:
             test_sum = test_px**2 + test_py**2 + test_pz**2
 
             if (test_sum < 1.):
-                array_6d[1, num_inside_circle] = test_px
-                array_6d[3, num_inside_circle] = test_py
-                array_6d[5, num_inside_circle] = test_pz
+                array6d[1, num_inside_circle] = test_px
+                array6d[3, num_inside_circle] = test_py
+                array6d[5, num_inside_circle] = test_pz
                 num_inside_circle += 1
 
         return
 
     def make_gauss_distrib(self):
-        array_6d = self.phase_space_6d.get_array_6d()
+        array6d = self.phase_space_6d.get_array_6d()
         num_ptcls = self.phase_space_6d.get_num_ptcls()
         for nLoop in range(6):
             num_inside_circle = 0
@@ -103,21 +97,8 @@ class RsDistrib6D:
                 test_point = numpy.random.normal(0.0, 1.0, 1)
 
                 if (test_point*test_point < self.max_rms_fac):
-                    array_6d[nLoop, num_inside_circle] = test_point
+                    array6d[nLoop, num_inside_circle] = test_point
                     num_inside_circle += 1
-        return
-
-    def init_phase_space_6d(self):
-        if (self.distrib_type == 'uniform'):
-            self.make_unif_distrib()
-        elif (self.distrib_type == 'gaussian'):
-            self.make_gauss_distrib()
-        else:
-            message = '\n\nERROR --'
-            message += '\n    distrib_type is specified as "' + self.distrib_type + '", which is not supported.'
-            message += '\n    Only "uniform" and "gaussian" are allowed.'
-            message += '\n'
-            raise Exception(message)
         return
 
     def clean_phase_space_6d(self):
@@ -125,11 +106,6 @@ class RsDistrib6D:
         stats6d.rm_correlations6d(self.phase_space_6d.get_array_6d())
         stats6d.sub_avg6d(self.phase_space_6d.get_array_6d())
         stats6d.normalize_rms6d(self.phase_space_6d.get_array_6d())
-        return
-
-    def round_phase_space_6d(self):
-        self.init_phase_space_6d()
-        self.clean_phase_space_6d()
         return
 
     def calc_averages_6d(self):
@@ -146,8 +122,8 @@ class RsDistrib6D:
         emit_rms  = numpy.zeros(3)
 
         sigma = stats6d.calc_correlations6d(self.phase_space_6d.get_array_6d())
-        for iLoop in range(3):
-            ii = 2 * iLoop
+        for i_loop in range(3):
+            ii = 2 * i_loop
             emitSQ = sigma[ii,ii]*sigma[ii+1,ii+1] - sigma[ii,ii+1]*sigma[ii+1,ii]
 
             if False:
@@ -158,7 +134,7 @@ class RsDistrib6D:
 
             if False:
                 print ' '
-                print ' iLoop, ii = ', iLoop, ii
+                print ' i_loop, ii = ', i_loop, ii
                 print ' sigma[', ii,   ii,  '] = ', sigma[ii,  ii  ]
                 print ' sigma[', ii+1, ii,  '] = ', sigma[ii+1,ii  ]
                 print ' sigma[', ii,   ii+1,'] = ', sigma[ii,  ii+1]
@@ -168,16 +144,17 @@ class RsDistrib6D:
                 message  = 'Error -- \n\n'
                 message += '  emitSQ = ' + str(emitSQ) + ' must be > zero!\n'
                 message += '  ...in RsDistrib6D:calc_twiss6d()\n'
-                message += '  iLoop, ii = ' + str(iLoop) + ', ' + str(ii) + '\n'
+                message += '  i_loop, ii = ' + str(i_loop) + ', ' + str(ii) + '\n'
                 raise Exception(message)
 
-            emit_rms[iLoop]  =  math.sqrt(emitSQ)
-            beta_rms[iLoop]  =  sigma[ii,ii]   / emit_rms[iLoop]
-            alpha_rms[iLoop] = -sigma[ii,ii+1] / emit_rms[iLoop]
+            emit_rms[i_loop]  =  math.sqrt(emitSQ)
+            beta_rms[i_loop]  =  sigma[ii,ii]   / emit_rms[i_loop]
+            alpha_rms[i_loop] = -sigma[ii,ii+1] / emit_rms[i_loop]
 
             if False:
                 print ' '
-                print ' alpha_rms, beta_rms, emit_rms = ', alpha_rms[iLoop], beta_rms[iLoop], emit_rms[iLoop]
+                print ' alpha_rms, beta_rms, emit_rms = ', \
+                    alpha_rms[i_loop], beta_rms[i_loop], emit_rms[i_loop]
 
         twiss6d['twiss_x'] = RsTwiss2D.RsTwiss2D(alpha_rms[0], beta_rms[0], emit_rms[0])
         twiss6d['twiss_y'] = RsTwiss2D.RsTwiss2D(alpha_rms[1], beta_rms[1], emit_rms[1])
@@ -185,13 +162,12 @@ class RsDistrib6D:
         return
 
     def make_twiss_dist_6d(self,twiss6d, mean_p_ev):
-        self.round_phase_space_6d()
 
-        array_6d = self.phase_space_6d.get_array_6d()
-        temp6D = array_6d.copy()
+        array6d = self.phase_space_6d.get_array_6d()
+        temp6D = array6d.copy()
 
         ii = -1
-        for iLoop in range(0,5,2):
+        for i_loop in range(0,5,2):
 
             ii +=1
             if   ii==0: twissObject = twiss6d['twiss_x']
@@ -210,59 +186,59 @@ class RsDistrib6D:
                 print ' alpha, beta, gamma[', ii, '] = ', alphaII, betaII, gammaII
 
             gMinusB = gammaII - betaII
-            rootFac = math.sqrt(gMinusB**2 + 4.0*alphaII**2)
+            rt_fac = math.sqrt(gMinusB**2 + 4.0*alphaII**2)
 
             if 0:
-                print ' gMinusB, rootFac[', ii, '] = ', gMinusB, rootFac
+                print ' gMinusB, rt_fac[', ii, '] = ', gMinusB, rt_fac
 
             if gMinusB >= 0.0:
-                fac  = math.sqrt(0.5*(gammaII+betaII-rootFac))
-                fInv = math.sqrt(0.5*(gammaII+betaII+rootFac))
+                fac  = math.sqrt(0.5*(gammaII+betaII-rt_fac))
+                f_inv = math.sqrt(0.5*(gammaII+betaII+rt_fac))
             else:
-                fac  = math.sqrt(0.5*(gammaII+betaII+rootFac))
-                fInv = math.sqrt(0.5*(gammaII+betaII-rootFac))
+                fac  = math.sqrt(0.5*(gammaII+betaII+rt_fac))
+                f_inv = math.sqrt(0.5*(gammaII+betaII-rt_fac))
 
             if 0:
-                print ' fac, fInv[', ii, '] = ', fac, fInv
+                print ' fac, f_inv[', ii, '] = ', fac, f_inv
 
             if alphaII == 0.0:
-                sinPhi = 0.0
-                cosPhi = 1.0
+                sin_phi = 0.0
+                cos_phi = 1.0
             else:
-                sinPhi = math.sqrt(0.5*(1.-math.fabs(gMinusB)/rootFac))
-                cosPhi = math.sqrt(0.5*(1.+math.fabs(gMinusB)/rootFac))
+                sin_phi = math.sqrt(0.5*(1.-math.fabs(gMinusB)/rt_fac))
+                cos_phi = math.sqrt(0.5*(1.+math.fabs(gMinusB)/rt_fac))
 
-            if alphaII*gMinusB < 0.0: sinPhi = -sinPhi
+            if alphaII*gMinusB < 0.0: sin_phi = -sin_phi
 
-            rootFac = math.sqrt(twissObject.get_emit_rms())
+            rt_fac = math.sqrt(twissObject.get_emit_rms())
 
             if 0:
-                print ' sinPhi, cosPhi, rootFac[', ii, '] = ', sinPhi, cosPhi, rootFac
+                print ' sin_phi, cos_phi, rt_fac[', ii, '] = ', sin_phi, cos_phi, rt_fac
 
             for nLoop in range(self.phase_space_6d.get_num_ptcls()):
-                array_6d[iLoop  ,nLoop] = rootFac*(fac *cosPhi*temp6D[iLoop,  nLoop] - \
-                                                  fInv*sinPhi*temp6D[iLoop+1,nLoop])
-                array_6d[iLoop+1,nLoop] = rootFac*(fac *sinPhi*temp6D[iLoop,  nLoop] + \
-                                                  fInv*cosPhi*temp6D[iLoop+1,nLoop])
-        self.multiply_distrib_component(mean_p_ev, 5)
-        self.offset_distrib_component(mean_p_ev, 5)
+                array6d[i_loop  ,nLoop] = rt_fac*(fac * cos_phi*temp6D[i_loop,  nLoop] - \
+                                                  f_inv*sin_phi*temp6D[i_loop+1,nLoop])
+                array6d[i_loop+1,nLoop] = rt_fac*(fac * sin_phi*temp6D[i_loop,  nLoop] + \
+                                                  f_inv*cos_phi*temp6D[i_loop+1,nLoop])
+        self.multiply_component(mean_p_ev, 5)
+        self.offset_component(mean_p_ev, 5)
 
-    def offset_distrib_component(self,offset,index):
+    def offset_component(self,offset,index):
         if index < 0 or index > 5:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array_6d = self.phase_space_6d.get_array_6d()
-        array_6d[index,:] += offset
+        array6d = self.phase_space_6d.get_array_6d()
+        array6d[index,:] += offset
 
         return
 
-    def multiply_distrib_component(self,factor,index):
+    def multiply_component(self,factor,index):
         if index < 0 or index > 5:
             message = 'ERROR!  index is out of range: ' + str(index)
             raise Exception(message)
 
-        array_6d = self.phase_space_6d.get_array_6d()
-        array_6d[index,:] *= factor
+        array6d = self.phase_space_6d.get_array_6d()
+        array6d[index,:] *= factor
 
         return
