@@ -27,63 +27,63 @@ class RsPlotPhaseSpace6D:
             message = 'ERROR - phaseSpace6D.getNumParticles() < 2: ' + str(tmpPoints)
             raise Exception(message)
 
-        self.data6D = phaseSpace6D.get_array_6d()
+        self.data6d = phaseSpace6D.get_array_6d()
 
         self.label=numpy.array(['x [m]', 'px', 'y [m]', 'py', 'z [m]', 'pz'])
         self.title='no plot title specified'
         self.figNum = 0
         return
 
-    def setTitle(self,title):
+    def set_title(self,title):
         self.title = title
         return
 
-    def getTitle(self):
+    def get_title(self):
         return self.title
 
-    def setLabel(self,index,label):
+    def set_label(self,index,label):
         self.label[index] = label
         return
 
-    def getLabel(self,index):
+    def get_label(self,index):
         return self.label[index]
 
-    def getData6D(self):
-        return self.data6D
+    def get_data6d(self):
+        return self.data6d
 
-    def setData6D(self,data6D):
-        self.data6D = data6D
+    def set_data6d(self,data6d):
+        self.data6d = data6d
         return
 
-    def plotData6D(self,hIndex,vIndex):
-        hArray = self.data6D[hIndex,:]
-        vArray = self.data6D[vIndex,:]
+    def plot_data6d(self,h_index,v_index):
+        h_array = self.data6d[h_index,:]
+        v_array = self.data6d[v_index,:]
 
-        hMin = min(hArray)
-        hMax = max(hArray)
-        if -hMin > hMax:
-            hMax = math.fabs(hMin)
+        h_min = min(h_array)
+        h_max = max(h_array)
+        if -h_min > h_max:
+            h_max = math.fabs(h_min)
         else:
-            hMin = -hMax
+            h_min = -h_max
 
-        vMin = min(vArray)
-        vMax = max(vArray)
-        if -vMin > vMax:
-            vMax = math.fabs(vMin)
+        v_min = min(v_array)
+        v_max = max(v_array)
+        if -v_min > v_max:
+            v_max = math.fabs(v_min)
         else:
-            vMin = -vMax
+            v_min = -v_max
 
         self.figNum += 1
         pyplot.figure(self.figNum)
-        pyplot.scatter(hArray, vArray, marker=',',s=1, c='k')
-        pyplot.axis([hMin, hMax, vMin, vMax])
+        pyplot.scatter(h_array, v_array, marker=',',s=1, c='k')
+        pyplot.axis([h_min, h_max, v_min, v_max])
 
-        pyplot.xlabel(self.label[hIndex])
-        pyplot.ylabel(self.label[vIndex])
+        pyplot.xlabel(self.label[h_index])
+        pyplot.ylabel(self.label[v_index])
         pyplot.title(self.title)
 
         return
 
-    def showPlots(self):
+    def show_plots(self):
         pyplot.show()
         return
