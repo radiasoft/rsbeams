@@ -6,7 +6,7 @@ from rsbeams.physics import rsconst
 from rsbeams.statistics import stats6d
 from rsbeams.ptcl_beam import RsPtclBeam6D
 from rsbeams.ptcl_beam import RsPhaseSpace6D
-from rsbeams.matplotlib import RsPlotPhaseSpace6D
+from rsbeams.matplotlib import RsScatterPS6D
 
 def save_plot_and_check(plot_obj, file_name, force_error=False):
     """Encapsulate some file handling to avoid code repetition"""
@@ -83,7 +83,7 @@ def test_beam_plot():
     my_space = my_ebeam.get_distrib6d().get_phase_space_6d()
 
     # Instantiate a bunch plotting object
-    my_plotter = RsPlotPhaseSpace6D.RsPlotPhaseSpace6D(my_space)
+    my_plotter = RsScatterPS6D.RsScatterPS6D(my_space)
 
     # Generate an x-px scatter plot
     my_plotter.set_title('x-xp projection')

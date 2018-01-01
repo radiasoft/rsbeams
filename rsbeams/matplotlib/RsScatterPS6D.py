@@ -13,8 +13,8 @@ import math
 import numpy
 from matplotlib import pyplot
 
-class RsPlotPhaseSpace6D:
-    """Plot phase space points from RsPhaseSpace6D class"""
+class RsScatterPS6D:
+    """Enable scatter plots of points from RsPhaseSpace6D class"""
 
     def __init__(self, phaseSpace6D):
 
