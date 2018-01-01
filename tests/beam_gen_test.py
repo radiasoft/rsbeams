@@ -9,9 +9,9 @@ def test_beam_gen():
 
     # specify physical properties of the beam
     num_ptcls = 1000
-    design_p_ev = 271
-    total_charge_c = 3.05
-    mass_ev = rsconst.m_e
+    design_p_ev = 271e+6
+    total_charge_c = 3.05e-09
+    mass_ev = rsconst.m_e_EV
 
     dist_type = 'gaussian'
     max_rms_fac = 4.9
@@ -39,7 +39,16 @@ def test_beam_gen():
     gamma0 = my_ebeam.get_gamma0()
     beta0 = my_ebeam.get_beta0()
 
-    print('\nbeta0, gamma0 = ', beta0, ', ', gamma0)
+#    print('beta_gamma = ', beta_gamma)
+#    print('gamma0     = ', gamma0)
+#    print('beta0      = ', beta0)
+
+    assert(stats6d.specify_significant_figures(beta_gamma,6) == \
+           stats6d.specify_significant_figures(530.334,6))
+    assert(stats6d.specify_significant_figures(gamma0,6) == \
+           stats6d.specify_significant_figures(530.335,6))
+    assert(stats6d.specify_significant_figures(beta0,6) == \
+           stats6d.specify_significant_figures(0.999998,6))
 
     my_twiss_x = my_ebeam.get_twiss2d_by_name('twiss_x')
     my_twiss_y = my_ebeam.get_twiss2d_by_name('twiss_y')
@@ -61,9 +70,9 @@ def test_beam_gen():
     assert(my_twiss_y.get_beta_rms() == beta_y)
     assert(my_twiss_y.get_emit_rms() == emit_y)
 
-    print('alpha_z = ', my_twiss_z.get_alpha_rms())
-    print('beta_z = ', my_twiss_z.get_beta_rms())
-    print('emit_z = ', my_twiss_z.get_emit_rms())
+#    print('alpha_z = ', my_twiss_z.get_alpha_rms())
+#    print('beta_z = ', my_twiss_z.get_beta_rms())
+#    print('emit_z = ', my_twiss_z.get_emit_rms())
 
     assert(my_twiss_z.get_alpha_rms() == alpha_z)
     assert(my_twiss_z.get_beta_rms() == beta_z)
@@ -97,9 +106,9 @@ def test_beam_gen():
     assert(stats6d.specify_significant_figures(new_twiss_y.get_emit_rms(),3) == \
            stats6d.specify_significant_figures(emit_y,3))
 
-    print('alpha_z = ', new_twiss_z.get_alpha_rms())
-    print('beta_z = ', new_twiss_z.get_beta_rms())
-    print('emit_z = ', new_twiss_z.get_emit_rms())
+#    print('alpha_z = ', new_twiss_z.get_alpha_rms())
+#    print('beta_z = ', new_twiss_z.get_beta_rms())
+#    print('emit_z = ', new_twiss_z.get_emit_rms())
 
 #    assert(stats6d.specify_significant_figures(new_twiss_z.get_alpha_rms(),3) == \
 #           stats6d.specify_significant_figures(alpha_z,3))
@@ -108,4 +117,4 @@ def test_beam_gen():
 #    assert(stats6d.specify_significant_figures(new_twiss_z.get_emit_rms(),3) == \
 #           stats6d.specify_significant_figures(emit_z,3))
 
-test_beam_gen()
+# test_beam_gen()

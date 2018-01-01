@@ -220,8 +220,10 @@ class RsDistrib6D:
                                                   f_inv*sin_phi*temp6D[i_loop+1,nLoop])
                 array6d[i_loop+1,nLoop] = rt_fac*(fac * sin_phi*temp6D[i_loop,  nLoop] + \
                                                   f_inv*cos_phi*temp6D[i_loop+1,nLoop])
-        self.multiply_component(mean_p_ev, 5)
-        self.offset_component(mean_p_ev, 5)
+#        self.multiply_component(mean_p_ev, 5)
+#        self.offset_component(mean_p_ev, 5)
+
+        return
 
     def offset_component(self,offset,index):
         if index < 0 or index > 5:
