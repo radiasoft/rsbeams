@@ -66,7 +66,7 @@ def calc_correlations6d(array6D):
 def rm_correlations6d(array6D):
     npoints = array6D.shape[1]
     sigmaM = calc_correlations6d(array6D)
-    eigVals, eigVecs = jacobiEigenSolver6D(sigmaM)
+    eigVals, eigVecs = jacobi_eigen_solver6d(sigmaM)
 
     verboseCheck = 0
     if verboseCheck == 1:

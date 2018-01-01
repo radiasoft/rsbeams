@@ -29,7 +29,7 @@ class RsDistrib6D:
         self.phase_space_6d.check_array()
 
         # set some defaults
-        self.maxRmsFactor = 5.0
+        self.max_rms_fac = 5.0
         self.distrib_type = 'gaussian'
         return
 
@@ -179,9 +179,9 @@ class RsDistrib6D:
                 print ' '
                 print ' alpha_rms, beta_rms, emit_rms = ', alpha_rms[iLoop], beta_rms[iLoop], emit_rms[iLoop]
 
-        twiss6d['twissX'] = RsTwiss2D.RsTwiss2D(alpha_rms[0], beta_rms[0], emit_rms[0])
-        twiss6d['twissY'] = RsTwiss2D.RsTwiss2D(alpha_rms[1], beta_rms[1], emit_rms[1])
-        twiss6d['twissZ'] = RsTwiss2D.RsTwiss2D(alpha_rms[2], beta_rms[2], emit_rms[2])
+        twiss6d['twiss_x'] = RsTwiss2D.RsTwiss2D(alpha_rms[0], beta_rms[0], emit_rms[0])
+        twiss6d['twiss_y'] = RsTwiss2D.RsTwiss2D(alpha_rms[1], beta_rms[1], emit_rms[1])
+        twiss6d['twiss_z'] = RsTwiss2D.RsTwiss2D(alpha_rms[2], beta_rms[2], emit_rms[2])
         return
 
     def make_twiss_dist_6d(self,twiss6d, mean_p_ev):
@@ -194,15 +194,15 @@ class RsDistrib6D:
         for iLoop in range(0,5,2):
 
             ii +=1
-            if   ii==0: twissObject = twiss6d['twissX']
-            elif ii==1: twissObject = twiss6d['twissY']
-            elif ii==2: twissObject = twiss6d['twissZ']
+            if   ii==0: twissObject = twiss6d['twiss_x']
+            elif ii==1: twissObject = twiss6d['twiss_y']
+            elif ii==2: twissObject = twiss6d['twiss_z']
             else:
                 message = 'Error:  ii = ' + ii + ' -- not valid.'
                 raise Exception(message)
 
-            alphaII = twissObject.getAlphaRMS()
-            betaII  = twissObject.getBetaRMS()
+            alphaII = twissObject.get_alpha_rms()
+            betaII  = twissObject.get_beta_rms()
             gammaII = (1.0 + alphaII**2) / betaII
 
             if 0:
@@ -234,12 +234,12 @@ class RsDistrib6D:
 
             if alphaII*gMinusB < 0.0: sinPhi = -sinPhi
 
-            rootFac = math.sqrt(twissObject.getEmitRMS())
+            rootFac = math.sqrt(twissObject.get_emit_rms())
 
             if 0:
                 print ' sinPhi, cosPhi, rootFac[', ii, '] = ', sinPhi, cosPhi, rootFac
 
-            for nLoop in range(self.phase_space_6d.getNumParticles()):
+            for nLoop in range(self.phase_space_6d.get_num_ptcls()):
                 array_6d[iLoop  ,nLoop] = rootFac*(fac *cosPhi*temp6D[iLoop,  nLoop] - \
                                                   fInv*sinPhi*temp6D[iLoop+1,nLoop])
                 array_6d[iLoop+1,nLoop] = rootFac*(fac *sinPhi*temp6D[iLoop,  nLoop] + \

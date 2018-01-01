@@ -25,21 +25,24 @@ from rsbeams.ptcl_beam import RsTwiss2D
 from rsbeams.physics import rsconst
 
 class RsPtclBeam6D:
-"""Representation of a 6D charged particle distribution."""
+    """Representation of a 6D charged particle distribution."""
 
-    def __init__(self, num_ptcls, design_p_ev, total_charge, mass_ev,
+    def __init__(self, num_ptcls, design_p_ev, total_charge_c, mass_ev,
                  alpha_x, beta_x, emit_x, alpha_y, beta_y, emit_y, alpha_z, beta_z, emit_z):
 
         # set the specified data
         self.design_p_ev = design_p_ev
-        self.total_charge = total_charge
+        self.total_charge_c = total_charge_c
         self.mass_ev = mass_ev
 
         # instantiate local class variables
-        self.distrib6D = RsDistrib6D.RsDistrib6D(num_ptcls)
-        self.twiss6d = OrderedDict( [('twiss_x', RsTwiss2D(alpha_x, beta_x, emit_x)), \
-                                           ('twiss_y', RsTwiss2D(alpha_y, beta_y, emit_y)), \
-                                           ('twiss_z', RsTwiss2D(alpha_z, beta_z, emit_z))] )
+        self.twiss6d = OrderedDict( [('twiss_x', RsTwiss2D.RsTwiss2D(alpha_x, beta_x, emit_x)), \
+                                     ('twiss_y', RsTwiss2D.RsTwiss2D(alpha_y, beta_y, emit_y)), \
+                                     ('twiss_z', RsTwiss2D.RsTwiss2D(alpha_z, beta_z, emit_z))] )
+
+        self.distrib6d = RsDistrib6D.RsDistrib6D(num_ptcls)
+        self.make_ptcl_phase_space_6d()
+
         return
 
     def get_design_p_ev(self):
@@ -53,14 +56,14 @@ class RsPtclBeam6D:
             raise Exception(message)
         return
 
-    def get_total_charge(self):
-        return self.total_charge
+    def get_total_charge_c(self):
+        return self.total_charge_c
 
-    def set_total_charge(self, total_charge):
-        if (total_charge > 0.):
-            self.total_charge = total_charge
+    def set_total_charge_c(self, total_charge_c):
+        if (total_charge_c > 0.):
+            self.total_charge_c = total_charge_c
         else:
-            message = 'ERROR!  total_charge <= 0.: ' + str(total_charge)
+            message = 'ERROR!  total_charge_c <= 0.: ' + str(total_charge_c)
             raise Exception(message)
         return
 
@@ -93,17 +96,17 @@ class RsPtclBeam6D:
         return
 
     def calc_twiss6d(self):
-        self.distrib6D.calc_twiss6d(self.twiss6d)
+        self.distrib6d.calc_twiss6d(self.twiss6d)
         return
 
     def getDistrib6D(self):
-        return self.distrib6D
+        return self.distrib6d
 
-    def make_ptcl_phase_space_6d(self, mean_p_ev):
-        self.distrib6D.makeTwissDist6D(self.twiss6d, mean_p_ev)
+    def make_ptcl_phase_space_6d(self):
+        self.distrib6d.make_twiss_dist_6d(self.twiss6d, self.design_p_ev)
         return
 
     def get_peak_current_rms(self):
-        rms_length = self.distrib6D.calcRmsValues6D()[4]
+        rms_length = self.distrib6d.calc_rms_values_6d()[4]
         rms_time = rms_length / (self.get_beta0()*rsconst.c)
-        return self.total_charge/rms_time
+        return self.total_charge_c/rms_time

@@ -8,7 +8,7 @@ except when we are following scipy or modifying a scipy constant.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import math
-import scipy.constants
+import scipy.constants as const
 
 # obviously ok to use math.pi everywhere; here for completeness
 pi = math.pi
