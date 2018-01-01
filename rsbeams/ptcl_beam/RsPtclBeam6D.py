@@ -71,7 +71,7 @@ class RsPtclBeam6D:
         self.distrib6d.calc_twiss6d(self.twiss6d)
         return
 
-    def getDistrib6D(self):
+    def get_distrib6d(self):
         return self.distrib6d
 
     def get_peak_current_rms(self):
