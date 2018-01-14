@@ -1,8 +1,7 @@
-### rsbeams
-
-Code-agnostic Python utilities for particle beam simulations
+### Code-agnostic Python utilities for particle beam simulations
 
 Used (or to be used) by the following repositories:
+
     https://github.com/radiasoft/rswarp
     https://github.com/radiasoft/rssynergia
     https://github.com/radiasoft/rsfriction
