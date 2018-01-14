@@ -1,12 +1,13 @@
-### Code-agnostic Python utilities for particle beam simulations
-
+### RsBeams is a code-agnostic Python library for charged particle beam simulations
 Used (or to be used) by the following repositories:
 
-    https://github.com/radiasoft/rswarp
-    https://github.com/radiasoft/rssynergia
-    https://github.com/radiasoft/rsfriction
-    https://github.com/radiasoft/rstensorflow
+https://github.com/radiasoft/rswarp
 
+https://github.com/radiasoft/rssynergia
+    
+https://github.com/radiasoft/rsfriction
+    
+https://github.com/radiasoft/rstensorflow
 
 #### License
 
