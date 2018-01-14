@@ -2,12 +2,15 @@
 
 Code-agnostic Python utilities for particle beam simulations
 
-Learn more at https://github.com/radiasoft/rsbeams.
+Used (or to be used) by the following repositories:
+    https://github.com/radiasoft/rswarp
+    https://github.com/radiasoft/rssynergia
+    https://github.com/radiasoft/rsfriction
+    https://github.com/radiasoft/rstensorflow
 
-Documentation: http://rsbeams.readthedocs.org/en/latest/
 
 #### License
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+Copyright (c) 2016-2018 RadiaSoft LLC.  All Rights Reserved.
