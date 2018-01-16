@@ -9,6 +9,7 @@ Subsequent mods are due to RadiaSoft,
 
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 import math
 import numpy
 from rsbeams.ptcl_beam import RsTwiss2D
@@ -127,18 +128,16 @@ class RsDistrib6D:
             emitSQ = sigma[ii,ii]*sigma[ii+1,ii+1] - sigma[ii,ii+1]*sigma[ii+1,ii]
 
             if False:
-                print ' '
-                print ' num_ptcls = ', self.phase_space_6d.get_num_ptcls()
+                print('\n num_ptcls = ', self.phase_space_6d.get_num_ptcls())
                 q6 = self.phase_space_6d.get_array_6d()
-                print ' 1st particle: ', q6[:,0]
+                print(' 1st particle: ', q6[:,0])
 
             if False:
-                print ' '
-                print ' i_loop, ii = ', i_loop, ii
-                print ' sigma[', ii,   ii,  '] = ', sigma[ii,  ii  ]
-                print ' sigma[', ii+1, ii,  '] = ', sigma[ii+1,ii  ]
-                print ' sigma[', ii,   ii+1,'] = ', sigma[ii,  ii+1]
-                print ' sigma[', ii+1, ii+1,'] = ', sigma[ii+1,ii+1]
+                print('\n i_loop, ii = ', i_loop, ii)
+                print(' sigma[', ii,   ii,  '] = ', sigma[ii,  ii  ])
+                print(' sigma[', ii+1, ii,  '] = ', sigma[ii+1,ii  ])
+                print(' sigma[', ii,   ii+1,'] = ', sigma[ii,  ii+1])
+                print(' sigma[', ii+1, ii+1,'] = ', sigma[ii+1,ii+1])
 
             if emitSQ <= 0.0:
                 message  = 'Error -- \n\n'
@@ -152,9 +151,8 @@ class RsDistrib6D:
             alpha_rms[i_loop] = -sigma[ii,ii+1] / emit_rms[i_loop]
 
             if False:
-                print ' '
-                print ' alpha_rms, beta_rms, emit_rms = ', \
-                    alpha_rms[i_loop], beta_rms[i_loop], emit_rms[i_loop]
+                print('\n alpha_rms, beta_rms, emit_rms = ', \
+                    alpha_rms[i_loop], beta_rms[i_loop], emit_rms[i_loop])
 
         twiss6d['twiss_x'] = RsTwiss2D.RsTwiss2D(alpha_rms[0], beta_rms[0], emit_rms[0])
         twiss6d['twiss_y'] = RsTwiss2D.RsTwiss2D(alpha_rms[1], beta_rms[1], emit_rms[1])
@@ -182,14 +180,13 @@ class RsDistrib6D:
             gammaII = (1.0 + alphaII**2) / betaII
 
             if 0:
-                print ' '
-                print ' alpha, beta, gamma[', ii, '] = ', alphaII, betaII, gammaII
+                print('\n alpha, beta, gamma[', ii, '] = ', alphaII, betaII, gammaII)
 
             gMinusB = gammaII - betaII
             rt_fac = math.sqrt(gMinusB**2 + 4.0*alphaII**2)
 
             if 0:
-                print ' gMinusB, rt_fac[', ii, '] = ', gMinusB, rt_fac
+                print(' gMinusB, rt_fac[', ii, '] = ', gMinusB, rt_fac)
 
             if gMinusB >= 0.0:
                 fac  = math.sqrt(0.5*(gammaII+betaII-rt_fac))
@@ -199,7 +196,7 @@ class RsDistrib6D:
                 f_inv = math.sqrt(0.5*(gammaII+betaII-rt_fac))
 
             if 0:
-                print ' fac, f_inv[', ii, '] = ', fac, f_inv
+                print(' fac, f_inv[', ii, '] = ', fac, f_inv)
 
             if alphaII == 0.0:
                 sin_phi = 0.0
@@ -213,7 +210,7 @@ class RsDistrib6D:
             rt_fac = math.sqrt(twissObject.get_emit_rms())
 
             if 0:
-                print ' sin_phi, cos_phi, rt_fac[', ii, '] = ', sin_phi, cos_phi, rt_fac
+                print(' sin_phi, cos_phi, rt_fac[', ii, '] = ', sin_phi, cos_phi, rt_fac)
 
             for nLoop in range(self.phase_space_6d.get_num_ptcls()):
                 array6d[i_loop  ,nLoop] = rt_fac*(fac * cos_phi*temp6D[i_loop,  nLoop] - \

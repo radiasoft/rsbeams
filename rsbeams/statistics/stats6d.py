@@ -9,6 +9,7 @@ Subsequent mods are due to RadiaSoft,
 
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 import math
 import numpy
 import scipy
@@ -70,7 +71,7 @@ def rm_correlations6d(array6D):
 
     verboseCheck = 0
     if verboseCheck == 1:
-        print 'eigVals = ', eigVals
+        print('eigVals = ', eigVals)
 
     temp6D = array6D.copy()
     for iLoop in range(6):
