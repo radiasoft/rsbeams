@@ -35,8 +35,8 @@ def save_plot_and_check(plot_obj, file_name, force_error=False):
 #        print('File "',file_name,'" does exist.')
 #        print(os.stat(file_name))
 #        print('size: ', os.stat(file_name).st_size)
-        assert(os.stat(file_name).st_size > 31000)
-        assert(os.stat(file_name).st_size < 43000)
+        assert(os.stat(file_name).st_size > 29000)
+        assert(os.stat(file_name).st_size < 45000)
     else:
         # File doesn't exist; something went wrong
         assert 0, '\n   File "'+file_name+'" does NOT exist.'
