@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import pytest
 import numpy
-from rsbeams.statistics import stats6d
-from rsbeams.ptcl_beam import RsPhaseSpace6D
+from rsbeams.rsstats import stats6d
+from rsbeams.rsptcls import RsPhaseSpace6D
 
 def test_phase_space_01():
     # initialization creates a 6 x N array of zeros

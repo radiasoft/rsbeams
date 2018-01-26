@@ -12,9 +12,9 @@ Subsequent mods are due to RadiaSoft,
 from __future__ import absolute_import, division, print_function, unicode_literals
 import math
 import numpy
-from rsbeams.ptcl_beam import RsTwiss2D
-from rsbeams.ptcl_beam import RsPhaseSpace6D
-from rsbeams.statistics import stats6d
+from rsbeams.rsptcls import RsTwiss2D
+from rsbeams.rsptcls import RsPhaseSpace6D
+from rsbeams.rsstats import stats6d
 
 class RsDistrib6D:
     """Generate a Gaussian or uniformly-filled 6D distribution."""

@@ -2,11 +2,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import numpy
-from rsbeams.physics import rsconst
-from rsbeams.statistics import stats6d
-from rsbeams.ptcl_beam import RsPtclBeam6D
-from rsbeams.ptcl_beam import RsPhaseSpace6D
-from rsbeams.matplotlib import RsScatterPS6D
+from rsbeams.rsstats import stats6d
+from rsbeams.rsphysics import rsconst
+from rsbeams.rsplot import RsScatterPS6D
+from rsbeams.rsptcls import RsPtclBeam6D
+from rsbeams.rsptcls import RsPhaseSpace6D
 
 def save_plot_and_check(plot_obj, file_name, force_error=False):
     """Encapsulate some file handling to avoid code repetition"""

@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import pytest
 import numpy
-from rsbeams.statistics import stats6d
-from rsbeams.ptcl_beam import RsTwiss2D
+from rsbeams.rsstats import stats6d
+from rsbeams.rsptcls import RsTwiss2D
 
 def test_twiss2d():
     my_alpha = -0.1

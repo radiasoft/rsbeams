@@ -20,9 +20,9 @@ Subsequent mods are due to RadiaSoft,
 import math
 from collections import OrderedDict
 
-from rsbeams.ptcl_beam import RsDistrib6D
-from rsbeams.ptcl_beam import RsTwiss2D
-from rsbeams.physics import rsconst
+from rsbeams.rsptcls import RsDistrib6D
+from rsbeams.rsptcls import RsTwiss2D
+from rsbeams.rsphysics import rsconst
 
 class RsPtclBeam6D:
     """Representation of a 6D charged particle distribution."""

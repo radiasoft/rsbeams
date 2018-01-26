@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import pytest
 import numpy
-from rsbeams.physics import rsconst
-from rsbeams.statistics import stats6d
-from rsbeams.ptcl_beam import RsPtclBeam6D
+from rsbeams.rsphysics import rsconst
+from rsbeams.rsstats import stats6d
+from rsbeams.rsptcls import RsPtclBeam6D
 
 def test_beam_gen():
 

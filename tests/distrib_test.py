@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import pytest
 import numpy
-from rsbeams.statistics import stats6d
-from rsbeams.ptcl_beam import RsDistrib6D
+from rsbeams.rsstats import stats6d
+from rsbeams.rsptcls import RsDistrib6D
 
 def test_unif_sphere():
     # initialization creates a 6 x N array of zeros

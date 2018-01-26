@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import pytest
 import numpy
-from rsbeams.statistics import stats6d
+from rsbeams.rsstats import stats6d
 
 def test_stats_01():
     array_6d = numpy.zeros(36).reshape(6,6)
