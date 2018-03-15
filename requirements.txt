@@ -1,1 +1,4 @@
 pykern
+pathos
+numpy
+scipy
