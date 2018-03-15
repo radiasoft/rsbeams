@@ -7,7 +7,7 @@ from scipy.special import fresnel
 class CentroidPosition:
     """
     Calculate position of an initially offset beam centroid vs turn.
-    Assumes a waterbag distribution and arbitrary order in tune depedence with amplitude.
+    Assumes a waterbag distribution and arbitrary order in tune dependence with amplitude.
     Based on SSC-N-360.
     """
     def __init__(self, N, Z, nu0, mu):
@@ -66,7 +66,7 @@ class CentroidPosition:
         """
         Performs numerical integration over range [0, 2*Pi*n] for each turn out to N. Up to arbitrary order in a.
         Args:
-            turn: [None] (Int) If not None then specificy a single turn to calculate the centroid position at.
+            turn: [None] (Int) If not None then specify a single turn to calculate the centroid position at.
 
         Returns:
             Float or array of floats
@@ -88,7 +88,7 @@ class CentroidPosition:
         """
         Exact value of integral if only a**2 term in tune dependent amplitude is used.
         Args:
-            turn: [None] (Int) If not None then specificy a single turn to calculate the centroid position at.
+            turn: [None] (Int) If not None then specify a single turn to calculate the centroid position at.
 
         Returns:
             Float or array of floats
@@ -111,7 +111,7 @@ class CentroidPosition:
         """
         Exact value of integral if only a**2 anda**4 terms in tune dependent amplitude are used.
         Args:
-            turn: [None] (Int) If not None then specificy a single turn to calculate the centroid position at.
+            turn: [None] (Int) If not None then specify a single turn to calculate the centroid position at.
 
         Returns:
             Float or array of floats
@@ -141,7 +141,7 @@ class CentroidPosition:
         turn values.
         Will automatically use `integrate_first_order` or `integrate_second_order` if appropriate.
         Args:
-            p: Specificy number of processes for pool. If not given then `cpu_count` is used.
+            p: Specify number of processes for pool. If not given then `cpu_count` is used.
 
         Returns:
             array of floats
