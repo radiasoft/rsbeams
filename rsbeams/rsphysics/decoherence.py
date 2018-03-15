@@ -5,13 +5,40 @@ from scipy.special import fresnel
 
 
 class CentroidPosition:
+    """
+    Calculate position of an initially offset beam centroid vs turn.
+    Assumes a waterbag distribution and arbitrary order in tune depedence with amplitude.
+    Based on SSC-N-360.
+    """
     def __init__(self, N, Z, nu0, mu):
+        """
+        Set up to perform integrations of centroid positions. Centroid positions can be found after setup by calling
+        the `calculate_centroid` method.
+
+        Note that mu contains the coefficients for the tune amplitude dependence with action:
+        mu_0 * a**2 + mu_1 * a**4 + ...
+
+        Args:
+            N: (int) Max turn number to calculate out to.
+            Z: (float) Initial offset normalized by rms beam size at offset position.
+            nu0: (float)Linear tune.
+            mu: (floats in iterable object) Iterable containing mu values to desired order.
+        """
         self.N = N
         self.Z = Z
         self.nu0 = nu0
         self.mu = mu
 
     def _reduced_integrand(self, a, n):
+        """
+        Calculate the integrand. Based on SSC-N-360 eq. 13.
+        Args:
+            a: (float or array of floats) Normalized action on range [0, 2*Pi*N].
+            n: (int) Turn number for calculation.
+
+        Returns:
+                Float
+        """
         order = 1
         advance = 0
         for m in self.mu:
@@ -36,6 +63,14 @@ class CentroidPosition:
         return coeff * distr
 
     def integrate_any_order(self, turn=None):
+        """
+        Performs numerical integration over range [0, 2*Pi*n] for each turn out to N. Up to arbitrary order in a.
+        Args:
+            turn: [None] (Int) If not None then specificy a single turn to calculate the centroid position at.
+
+        Returns:
+            Float or array of floats
+        """
         if turn is not None:
             n = turn
         else:
@@ -50,6 +85,14 @@ class CentroidPosition:
         return result
 
     def integrate_first_order(self, turn=None):
+        """
+        Exact value of integral if only a**2 term in tune dependent amplitude is used.
+        Args:
+            turn: [None] (Int) If not None then specificy a single turn to calculate the centroid position at.
+
+        Returns:
+            Float or array of floats
+        """
         if turn is not None:
             n = turn
         else:
@@ -65,6 +108,15 @@ class CentroidPosition:
         return xN
 
     def integrate_second_order(self, turn=None):
+        """
+        Exact value of integral if only a**2 anda**4 terms in tune dependent amplitude are used.
+        Args:
+            turn: [None] (Int) If not None then specificy a single turn to calculate the centroid position at.
+
+        Returns:
+            Float or array of floats
+
+        """
         if turn is not None:
             n = turn
         else:
@@ -84,6 +136,16 @@ class CentroidPosition:
         return xN * self.Z / np.sqrt(4. * self.mu[1] * n)
 
     def calculate_centroids(self, p=None):
+        """
+        Perform integration to find centroid at all turns up to N. Multiprocessing pool used to calculate indepdent
+        turn values.
+        Will automatically use `integrate_first_order` or `integrate_second_order` if appropriate.
+        Args:
+            p: Specificy number of processes for pool. If not given then `cpu_count` is used.
+
+        Returns:
+            array of floats
+        """
         if p:
             pool_size = p
         else:
