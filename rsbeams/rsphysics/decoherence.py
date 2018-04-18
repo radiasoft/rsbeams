@@ -109,7 +109,7 @@ class CentroidPosition:
 
     def integrate_second_order(self, turn=None):
         """
-        Exact value of integral if only a**2 anda**4 terms in tune dependent amplitude are used.
+        Exact value of integral if only a**2 and a**4 terms in tune dependent amplitude are used.
         Args:
             turn: [None] (Int) If not None then specify a single turn to calculate the centroid position at.
 
@@ -137,7 +137,7 @@ class CentroidPosition:
 
     def calculate_centroids(self, p=None):
         """
-        Perform integration to find centroid at all turns up to N. Multiprocessing pool used to calculate indepdent
+        Perform integration to find centroid at all turns up to N. Multiprocessing pool used to calculate independent
         turn values.
         Will automatically use `integrate_first_order` or `integrate_second_order` if appropriate.
         Args:
