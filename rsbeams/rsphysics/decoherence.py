@@ -15,7 +15,7 @@ class CentroidPosition:
         Set up to perform integrations of centroid positions. Centroid positions can be found after setup by calling
         the `calculate_centroid` method.
 
-        Note that mu contains the coefficients for the tune amplitude dependence with action:
+        Note that mu contains the coefficients for the tune amplitude dependence with amplitude:
         mu_0 * a**2 + mu_1 * a**4 + ...
 
         Args:
@@ -33,7 +33,7 @@ class CentroidPosition:
         """
         Calculate the integrand. Based on SSC-N-360 eq. 13.
         Args:
-            a: (float or array of floats) Normalized action on range [0, 2*Pi*N].
+            a: (float or array of floats) Normalized amplitude on range [0, 2*Pi*N].
             n: (int) Turn number for calculation.
 
         Returns:
