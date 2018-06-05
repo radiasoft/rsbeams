@@ -11,7 +11,11 @@ kg_per_ev = m_e_kg / m_e_ev
 
 m = 2.
 
-parser = arg.ArgumentParser(description="")
+parser = arg.ArgumentParser(description="Calculate relativistic, kinematic quantities based on input of one initial"
+                                        "quantity (see options below). The input may be made in appropriate "
+                                        "electron volt based unit quantity or SI unit (if set). The particle type"
+                                        "defaults to electron though any desired mass may set in eV/c**2 or kg "
+                                        "(if appropriate flag set). ")
 
 input = parser.add_mutually_exclusive_group(required=True)
 input.add_argument("-p", "--momentum", dest="momentum", type=float, help="Input momentum value. Default unit: eV/c")
@@ -42,6 +46,25 @@ class Converter:
     all other kinematic quantity calculations are then performed in terms of beta and gamma.
     """
     def __init__(self, start_parser):
+        """
+        Class that takes in a single kinematic quantity and particle mass and returns a list of other kinematic
+        quantities. Options for input and the output are:
+            - Velocity
+            - Beta
+            - Gamma
+            - Momentum
+            - Normalized momentum (beta * gamma)
+            - Energy
+            - Kinetic Energy
+
+        Currently only works through passing in a parser object with appropriate settings
+        Args:
+            start_parser: Parser object containing necessary settings.
+
+        Returns:
+            None
+            Prints results
+        """
         print("started")
         args = start_parser.parse_args()
         self.args = {key: getattr(args, key) for key in vars(args)}
@@ -116,22 +139,55 @@ class Converter:
     # All start methods used to convert input kinematic quantity to beta and gamma
     @staticmethod
     def start_velocity(velocity):
+        """
+        Calculate beta and gamma based on velocity.
+        Args:
+            velocity: Particle velocity in m/s.
+
+        Returns:
+            (beta, gamma)
+        """
         beta = velocity / c
 
         return beta, 1. / np.sqrt(1 - beta**2)
 
     @staticmethod
-    def start_gamma(beta):
-        beta = beta
-        return beta, 1. / np.sqrt(1 - beta**2)
+    def start_gamma(gamma):
+        """
+        Calculate beta and gamma based on gamma.
+        Args:
+            gamma: Relativistic gamma, unitless.
+
+        Returns:
+            (beta, gamma)
+
+        """
+
+        return np.sqrt(1. - 1 / gamma**2), gamma
 
     @staticmethod
-    def start_beta(gamma):
-        beta = np.sqrt(1 - 1 / gamma**2)
-        return beta, gamma
+    def start_beta(beta):
+        """
+        Calculate beta and gamma based on beta
+        Args:
+            beta: Relavistic beta, unitless
+
+        Returns:
+            (beta, gamma)
+        """
+
+        return beta, 1 / np.sqrt(1. - beta**2)
 
     @staticmethod
     def start_betagamma(betagamma):
+        """
+        Calculate beta and gamma based on beta * gamma
+        Args:
+            betagamma: Normalized momentum beta * gamma
+
+        Returns:
+            (beta, gamma)
+        """
         beta = betagamma / np.sqrt(1 + betagamma**2)
 
         return beta, 1. / np.sqrt(1 - beta**2)
