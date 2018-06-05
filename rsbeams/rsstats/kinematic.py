@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 import argparse as arg
 import numpy as np
@@ -8,8 +9,6 @@ from scipy.constants import c, m_e, physical_constants
 m_e_ev = physical_constants['electron mass energy equivalent in MeV'][0] * 1e6
 m_e_kg = m_e
 ev_per_kg = m_e_ev / m_e_kg
-
-m = 2.
 
 parser = arg.ArgumentParser(description="Calculate relativistic, kinematic quantities based on input of one initial"
                                         "quantity (see options below). The input may be made in appropriate "
@@ -122,14 +121,13 @@ class Converter:
             input_unit = "eV" * (self.outputs["input_type"] == 'energy') + \
                          "eV" * (self.outputs["input_type"] == 'kenergy') + \
                          "eV/c" * (self.outputs["input_type"] == 'momentum') + \
-                         "" * (self.outputs["input_type"] == 'beta') + \
-                         "" * (self.outputs["input_type"] == 'gamma') + "" * (self.outputs["input_type"] == 'betagamma')
+                         "m/s" * (self.outputs["input_type"] == 'velocity') + ""
         else:
             input_unit = "J" * (self.outputs["input_type"] == 'energy') + \
                          "J" * (self.outputs["input_type"] == 'kenergy') + \
                          "kg*m/s" * (self.outputs["input_type"] == 'momentum') + \
                          "" * (self.outputs["input_type"] == 'beta') + \
-                         "" * (self.outputs["input_type"] == 'gamma') + "" * (self.outputs["input_type"] == 'betagamma')
+                         "m/s" * (self.outputs["input_type"] == 'velocity') + ""
         self.outputs["input_unit"] = input_unit
 
         # Set all derived kinematic quantities
