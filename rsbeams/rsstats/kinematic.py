@@ -1,6 +1,9 @@
+import sys
 import argparse as arg
 import numpy as np
 from scipy.constants import c, m_e, physical_constants
+
+# TODO: Add functionality to the Converter class for stand-alone use in scripts/notebooks
 
 m_e_ev = physical_constants['electron mass energy equivalent in MeV'][0] * 1e6
 m_e_kg = m_e
@@ -8,9 +11,9 @@ kg_per_ev = m_e_kg / m_e_ev
 
 m = 2.
 
-parser = arg.ArgumentParser()
+parser = arg.ArgumentParser(description="")
 
-input = parser.add_mutually_exclusive_group()
+input = parser.add_mutually_exclusive_group(required=True)
 input.add_argument("-p", "--momentum", dest="momentum", type=float, help="Input momentum value. Default unit: eV/c")
 input.add_argument("-v", "--velocity", dest="velocity", type=float, help="Input velocity value. Default unit: m/s")
 input.add_argument("-E", "--energy", dest="energy", type=float, help="Input velocity value. Default unit eV")
@@ -34,11 +37,16 @@ parser.add_argument("--unit", dest="input_unit", choices=["SI", "eV"], default="
 
 
 class Converter:
+    """
+    Converter works by taking the input kinematic quantity and then always calculating beta and gamma;
+    all other kinematic quantity calculations are then performed in terms of beta and gamma.
+    """
     def __init__(self, start_parser):
         print("started")
         args = start_parser.parse_args()
         self.args = {key: getattr(args, key) for key in vars(args)}
 
+        # Method to call based on the kinematic quantity the user inputs
         self.startup = {"momentum": self.start_momentum,
                         "velocity": self.start_velocity,
                         "energy": self.start_energy,
@@ -47,6 +55,7 @@ class Converter:
                         "beta": self.start_beta,
                         "gamma": self.start_gamma}
 
+        # Store quantities needed for output or method to calculate that quantity
         self.outputs = {"momentum": self.calculate_momentum,
                         "velocity": self.calculate_velocity,
                         "energy": self.calculate_energy,
@@ -57,7 +66,7 @@ class Converter:
                         "p_unit": "eV/c" * (args.mass_unit == 'eV') + "kg * m/s" * (args.mass_unit == 'SI'),
                         "e_unit": "eV" * (args.mass_unit == 'eV') + "J" * (args.mass_unit == 'SI'),
                         "mass": None,
-                        "mass_unit": self.args["mass_unit"],
+                        "mass_unit": "eV/c^2" * (args.mass_unit == 'eV') + "kg" * (args.mass_unit == 'SI'),
                         "input": None,
                         "input_unit": self.args["input_unit"],
                         "input_type": None}
@@ -84,6 +93,7 @@ class Converter:
                 self.outputs["input_type"] = key
                 self.outputs["beta"], self.outputs["gamma"] = self.startup[key](value)
 
+        # Set all derived kinematic quantities
         for key, value in self.outputs.items():
             if callable(value):
                 self.outputs[key] = value(**self.outputs)
@@ -103,6 +113,7 @@ class Converter:
 
         print(print_string.format(**self.outputs))
 
+    # All start methods used to convert input kinematic quantity to beta and gamma
     @staticmethod
     def start_velocity(velocity):
         beta = velocity / c
@@ -133,18 +144,33 @@ class Converter:
         return beta, gamma
 
     def start_energy(self, energy):
-        gamma = energy / (self.mass * c**2)
+        if self.args["mass_unit"] == "SI":
+            mass_factor = c**2
+        else:
+            mass_factor = 1.0
+
+        gamma = energy / (self.mass * mass_factor)
         beta = np.sqrt(1. - 1 / gamma**2)
 
         return beta, gamma
 
     def start_kenergy(self, kenergy):
-        gamma = kenergy / (self.mass * c**2) + 1.
+        if self.args["mass_unit"] == "SI":
+            mass_factor = c**2
+        else:
+            mass_factor = 1.0
+
+        gamma = kenergy / (self.mass * mass_factor) + 1.
 
         return np.sqrt(1. - 1 / gamma**2), gamma
 
+    # All calculate methods are called to get necessary kinematic quantities
     def calculate_momentum(self, beta, gamma, **kwargs):
-        return beta * gamma * self.mass * c
+        if self.args["mass_unit"] == "SI":
+            mass_factor = c
+        else:
+            mass_factor = 1.0
+        return beta * gamma * self.mass * mass_factor
 
     def calculate_energy(self, gamma, **kwargs):
         if self.args["mass_unit"] == "SI":
@@ -169,5 +195,7 @@ class Converter:
         return beta * c
 
 if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        parser.print_help()
     run_converter = Converter(start_parser=parser)
     run_converter()
