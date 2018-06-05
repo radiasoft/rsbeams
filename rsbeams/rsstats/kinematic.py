@@ -4,10 +4,10 @@ import numpy as np
 from scipy.constants import c, m_e, physical_constants
 
 # TODO: Add functionality to the Converter class for stand-alone use in scripts/notebooks
-
+# TODO: Add output conversion to SI units
 m_e_ev = physical_constants['electron mass energy equivalent in MeV'][0] * 1e6
 m_e_kg = m_e
-kg_per_ev = m_e_kg / m_e_ev
+ev_per_kg = m_e_ev / m_e_kg
 
 m = 2.
 
@@ -65,7 +65,7 @@ class Converter:
             None
             Prints results
         """
-        print("started")
+
         args = start_parser.parse_args()
         self.args = {key: getattr(args, key) for key in vars(args)}
 
@@ -86,27 +86,29 @@ class Converter:
                         "betagamma": self.calcuate_betagamma,
                         "beta": None,
                         "gamma": None,
-                        "p_unit": "eV/c" * (args.mass_unit == 'eV') + "kg * m/s" * (args.mass_unit == 'SI'),
-                        "e_unit": "eV" * (args.mass_unit == 'eV') + "J" * (args.mass_unit == 'SI'),
+                        "p_unit": "eV/c" * (args.input_unit == 'eV') + "kg * m/s" * (args.input_unit == 'SI'),
+                        "e_unit": "eV" * (args.input_unit == 'eV') + "J" * (args.input_unit == 'SI'),
                         "mass": None,
                         "mass_unit": "eV/c^2" * (args.mass_unit == 'eV') + "kg" * (args.mass_unit == 'SI'),
                         "input": None,
-                        "input_unit": self.args["input_unit"],
+                        "input_unit": None,
                         "input_type": None}
 
         # Always use eV for internal calculations. Default to electron mass if not set by user.
         if args.mass_unit == "eV":
             if args.mass:
                 self.mass = args.mass
+                self.outputs["mass"] = args.mass
             else:
                 self.mass = m_e_ev
+                self.outputs["mass"] = m_e_ev
         elif args.mass_unit == "SI":
             if args.mass:
-                self.mass = args.mass * kg_per_ev
+                self.mass = args.mass * ev_per_kg
+                self.outputs["mass"] = args.mass
             else:
                 self.mass = m_e_ev
-
-        self.outputs["mass"] = self.mass
+                self.outputs["mass"] = m_e_ev / ev_per_kg
 
     def __call__(self, *args, **kwargs):
         # Set beta and gamma based on the input value
@@ -115,6 +117,20 @@ class Converter:
                 self.outputs["input"] = value
                 self.outputs["input_type"] = key
                 self.outputs["beta"], self.outputs["gamma"] = self.startup[key](value)
+
+        if self.args["input_unit"] == "eV":
+            input_unit = "eV" * (self.outputs["input_type"] == 'energy') + \
+                         "eV" * (self.outputs["input_type"] == 'kenergy') + \
+                         "eV/c" * (self.outputs["input_type"] == 'momentum') + \
+                         "" * (self.outputs["input_type"] == 'beta') + \
+                         "" * (self.outputs["input_type"] == 'gamma') + "" * (self.outputs["input_type"] == 'betagamma')
+        else:
+            input_unit = "J" * (self.outputs["input_type"] == 'energy') + \
+                         "J" * (self.outputs["input_type"] == 'kenergy') + \
+                         "kg*m/s" * (self.outputs["input_type"] == 'momentum') + \
+                         "" * (self.outputs["input_type"] == 'beta') + \
+                         "" * (self.outputs["input_type"] == 'gamma') + "" * (self.outputs["input_type"] == 'betagamma')
+        self.outputs["input_unit"] = input_unit
 
         # Set all derived kinematic quantities
         for key, value in self.outputs.items():
@@ -200,49 +216,30 @@ class Converter:
         return beta, gamma
 
     def start_energy(self, energy):
-        if self.args["mass_unit"] == "SI":
-            mass_factor = c**2
-        else:
-            mass_factor = 1.0
 
-        gamma = energy / (self.mass * mass_factor)
+        gamma = energy / self.mass
         beta = np.sqrt(1. - 1 / gamma**2)
 
         return beta, gamma
 
     def start_kenergy(self, kenergy):
-        if self.args["mass_unit"] == "SI":
-            mass_factor = c**2
-        else:
-            mass_factor = 1.0
 
-        gamma = kenergy / (self.mass * mass_factor) + 1.
+        gamma = kenergy / self.mass + 1.
 
         return np.sqrt(1. - 1 / gamma**2), gamma
 
     # All calculate methods are called to get necessary kinematic quantities
     def calculate_momentum(self, beta, gamma, **kwargs):
-        if self.args["mass_unit"] == "SI":
-            mass_factor = c
-        else:
-            mass_factor = 1.0
-        return beta * gamma * self.mass * mass_factor
+
+        return beta * gamma * self.mass
 
     def calculate_energy(self, gamma, **kwargs):
-        if self.args["mass_unit"] == "SI":
-            mass_factor = c**2
-        else:
-            mass_factor = 1.0
 
-        return gamma * self.mass * mass_factor
+        return gamma * self.mass
 
     def calculate_kenergy(self, gamma, **kwargs):
-        if self.args["mass_unit"] == "SI":
-            mass_factor = c ** 2
-        else:
-            mass_factor = 1.0
 
-        return self.mass * mass_factor * (gamma - 1)
+        return self.mass * (gamma - 1)
 
     def calcuate_betagamma(self, beta, gamma, **kwargs):
         return beta * gamma
