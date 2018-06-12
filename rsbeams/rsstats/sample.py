@@ -34,7 +34,8 @@ def sample(n, distribution, a, b, args=None, wn=1000):
         a: Lower bound to be used in calculating weights for sampling.
         b: Upper bound to be used in calculating weights for sampling.
         args: (tuple) Optional set of arguments to be passed to `distribution`.
-        wn: Number of points to use in calculating weights from `distribution`.
+        wn: Number of points on [a, b) used in calculating weights from `distribution` and the samples that
+            will be returned.
 
     Returns:
         (ndarray) of `n` points drawn from `distribution`.
