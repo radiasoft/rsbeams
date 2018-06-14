@@ -189,10 +189,10 @@ class StandardBunch(object):
         sigma_y = np.sqrt(self.emity*self._betay)
         sigma_yp = np.sqrt(self.emity*self._gammay)
         
-        self.particles[:,0] = np.random.randn(npart)*sigma_x #set x-coordinates
-        self.particles[:,1] = np.random.randn(npart)*sigma_xp #set xp-coordinates
-        self.particles[:,2] = np.random.randn(npart)*sigma_y #set y-coordinates
-        self.particles[:,3] = np.random.randn(npart)*sigma_yp #set yp-coordinates
+        self.particles[:,0] = np.random.randn(self.npart)*sigma_x #set x-coordinates
+        self.particles[:,1] = np.random.randn(self.npart)*sigma_xp #set xp-coordinates
+        self.particles[:,2] = np.random.randn(self.npart)*sigma_y #set y-coordinates
+        self.particles[:,3] = np.random.randn(self.npart)*sigma_yp #set yp-coordinates
         
         
     def generate_KV(self):
