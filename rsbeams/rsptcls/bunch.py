@@ -161,26 +161,26 @@ class StandardBunch(object):
         """Define the arrays describing the longitudinal coordinates z, dpop"""
         
         if betax is not None:
-            self._betax = betax
+            self.betax = betax
         if alphax is not None:
-            self._alphax = alphax
+            self.alphax = alphax
         if betay is not None:
-            self._betax = betay        
+            self.betax = betay        
         if alphay is not None:
-            self._alphay = alphay
+            self.alphay = alphay
         if emitx is not None:
-            self._emitx = emitx
+            self.emitx = emitx
         if emity is not None:
-            self._emity = emity
+            self.emity = emity
         
         if self.dist == 'Gaussian':
-            self.generate_Gaussian()
+            self.distribute_Gaussian()
             
         elif self.dist == 'KV':
-            self.generate_KV()
+            self.distribute_KV()
     
     
-    def generate_Gaussian(self):
+    def distribute_Gaussian(self):
         """ Generates an uncorrelated Gaussian distribution in 4D phase space using known bunch attributes"""
         
         sigma_x = np.sqrt(self.emitx*self._betax)
@@ -195,7 +195,7 @@ class StandardBunch(object):
         self.particles[:,3] = np.random.randn(self.npart)*sigma_yp #set yp-coordinates
         
         
-    def generate_KV(self):
+    def distribute_KV(self):
         """ 
         Generate a KV distribution in 4D phase space using known bunch attributes. Note that the KV distribution
         uniqely characterizes the bunch given a single emittance and appropriate normalizing (Twiss) parameters.
@@ -243,6 +243,8 @@ class StandardBunch(object):
                 ptclsMade += 1        
         
         self.particles[:,:4] = np.asarray(phaseSpaceList)
+    
+    
     
     
     def print_Twiss(self):
