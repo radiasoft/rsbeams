@@ -6,6 +6,8 @@ from scipy.constants import c, m_e, physical_constants
 
 # TODO: Add functionality to the Converter class for stand-alone use in scripts/notebooks
 # TODO: Add output conversion to SI units
+# TODO: Dynamically adjust printout to use sensible unit scale? (i.e. not just eV but MeV, GeV, etc if more readable)
+# TODO: Add check when E is given to make sure E>mc**2
 m_e_ev = physical_constants['electron mass energy equivalent in MeV'][0] * 1e6
 m_e_kg = m_e
 ev_per_kg = m_e_ev / m_e_kg
@@ -93,17 +95,17 @@ class Converter:
                         "input_unit": None,
                         "input_type": None}
 
-        # Always use eV for internal calculations. Default to electron mass if not set by user.
+        # Match mass unit to input units. Print mass in units the user used for input though.
         if args.mass_unit == "eV":
             if args.mass:
-                self.mass = args.mass
+                self.mass = args.mass * (1 * (args.input_unit == 'eV') + 1 / ev_per_kg * (args.input_unit == 'SI'))
                 self.outputs["mass"] = args.mass
             else:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev
         elif args.mass_unit == "SI":
             if args.mass:
-                self.mass = args.mass * ev_per_kg
+                self.mass = args.mass * (1 * (args.input_unit == 'SI') + 1 / ev_per_kg * (args.input_unit == 'eV'))
                 self.outputs["mass"] = args.mass
             else:
                 self.mass = m_e_ev
@@ -117,6 +119,7 @@ class Converter:
                 self.outputs["input_type"] = key
                 self.outputs["beta"], self.outputs["gamma"] = self.startup[key](value)
 
+        # Find correct unit names for the printout
         if self.args["input_unit"] == "eV":
             input_unit = "eV" * (self.outputs["input_type"] == 'energy') + \
                          "eV" * (self.outputs["input_type"] == 'kenergy') + \
@@ -229,7 +232,7 @@ class Converter:
     # All calculate methods are called to get necessary kinematic quantities
     def calculate_momentum(self, beta, gamma, **kwargs):
 
-        return beta * gamma * self.mass
+        return beta * gamma * self.mass * c
 
     def calculate_energy(self, gamma, **kwargs):
 
