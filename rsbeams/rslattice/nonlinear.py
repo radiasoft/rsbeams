@@ -85,8 +85,8 @@ class NonlinearInsert(object):
         bn = self.length*(1-self.s_vals*(self.length-self.s_vals)/self.length/f0)/np.sqrt(1.0-(1.0-self.length/2.0/f0)**2)
         self.betas = bn
         
-        knn = t*self.length/self.num_slices/bn**2
-        cnll = c*np.sqrt(bn)
+        knn = self.t*self.length/self.num_slices/bn**2
+        cnll = self.c*np.sqrt(bn)
         knll = knn*cnll**2
         
         #Now set the knll and cnll parameters for each nllens object
