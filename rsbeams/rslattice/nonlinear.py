@@ -10,6 +10,7 @@ Date Created: 6/21/2018
 Last Updated: 6/21/2018
 """
 
+import numpy as np
 
 
 class NonlinearInsert(object):
