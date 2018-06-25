@@ -235,8 +235,8 @@ class StandardBunch(object):
                 yReal = yTrial * np.sqrt(self.betay)
                 
                 #We want to provide the user with standard (non-normal) coordinates
-                pxReal = (pxHat + self.alphax*xTrial)/np.sqrt(self.betax)
-                pyReal = (pyHat + self.alphay*yTrial)/np.sqrt(self.betay)
+                pxReal = (pxHat - self.alphax*xTrial)/np.sqrt(self.betax)
+                pyReal = (pyHat - self.alphay*yTrial)/np.sqrt(self.betay)
                 
                 ptclCoords = np.array([xReal, pxReal, yReal, pyReal])
                 phaseSpaceList.append(ptclCoords)
