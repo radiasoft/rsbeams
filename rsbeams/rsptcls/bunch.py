@@ -14,10 +14,11 @@ A derived class will soon be added for matching to a nonlinear integrable insert
 systems using the elliptic scheme defined by: https://journals.aps.org/prab/abstract/10.1103/PhysRevSTAB.13.084002
 V. Danilov and S. Nagaitsev. Phys. Rev. ST Accel. Beams 13, 084002 (2010
 
+Nonlinear waterbag and truncated Gaussian functions modified from C. Mitchell of LBNL.
 
 Author: Nathan Cook
 Date Created: 6/14/2018
-Last Updated: 6/14/2018
+Last Updated: 6/25/2018
 
 
 """
@@ -549,6 +550,79 @@ class NonlinearBunch(StandardBunch):
                     self.exact_centroids(ptclCoords)
             else:
                 print "Initial value generated exceeds limiting H. Sampling new value."
+        
+        self.particles[:,:4] = np.asarray(phaseSpaceList)
+    
+    
+    def distribute_Gaussian(self):
+        """
+        Generates a truncated Gaussian distribution in H-space for the elliptic potential according to:
+            
+            - P(H) = exp(-H/eps) for (0 < H/eps < L], 
+            
+            where H is the nonlinear Hamiltonian, eps is the emittance, and L is the cutoff parameter.
+         
+        The method of generating particle coordinates remains simular to that used for the K-V distribution.
+        
+        """
+        # Copy the emittance value temporarily. It will be needed to reset the bunch attribute after fitting.
+        bunch_emittance = self.emit
+        
+        # Generate particles by creating trials and finding particles with potential less than emittance, then assign the rest to momentum
+        ptclsMade = 0
+        phaseSpaceList = []
+        while ptclsMade < self.npart:
+            trialH = 1e10 #1.0e10
+            while trialH > self.cutoff:        #Test against cutoff value
+                ranU1 = 0.0
+                ranU2 = 0.0
+                while ranU1*ranU2 <= 0:
+                    ranU1 = random.random()
+                    ranU2 = random.random()
+                trialH = -1.0*np.log(ranU1*ranU2)   #Generate an Erlang distribution in h
+            
+            
+            # Generate some bounds on the transverse size to reduce waste in generating the bunch
+            # Use the lemming method to find the maximum y            
+            newH = bunch_emittance*trialH #must modify the original bunch emtitance here
+            y0 = np.sqrt(newH)
+            
+            self.emit = newH #temporarily reset emittance for computing ymax on a particle by particle basis
+
+            yMax = newton(self.whatsleft, y0) 
+            
+            #bounding the horizontal coordinate is difficult, but it should not exceed the pole
+            xMax = self.c
+            #xMax = yMax
+            
+            trialValue = 1e10
+            while trialValue >= newH:
+                xTrial = 2.*(0.5 - random.random())*xMax
+                yTrial = 2.*(0.5 - random.random())*yMax
+                trialValue = self.compute_potential(xTrial, yTrial)
+            initialValue = trialValue
+            if initialValue < newH:
+                pMag = np.sqrt(2*(newH - initialValue))
+                pDir = 2*np.pi* random.random()
+                pxHat = pMag * np.cos(pDir)
+                pyHat = pMag * np.sin(pDir)
+                xReal = xTrial * np.sqrt(self.betax)
+                yReal = yTrial * np.sqrt(self.betay)
+                pxReal = (pxHat - self.alphax*xTrial)/np.sqrt(self.betax)
+                pyReal = (pyHat - self.alphay*yTrial)/np.sqrt(self.betay)
+                ptclCoords = np.array([xReal, pxReal, yReal, pyReal])
+                phaseSpaceList.append(ptclCoords)
+                ptclsMade += 1
+                
+                #Add 3 more particles if creating a quiet start
+                if self.quiet:
+                    self.exact_centroids(ptclCoords)
+                
+            else:
+                print "Initial value generated exceeds limiting H. Sampling new value."
+        
+        #Completed distribution, so reset emittance
+        self.emit = bunch_emittance
         
         self.particles[:,:4] = np.asarray(phaseSpaceList)
     
