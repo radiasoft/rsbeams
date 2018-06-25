@@ -46,11 +46,12 @@ class StandardBunch(object):
         stdz (float): standard deviation in z-coordinate, defautls to 0
         dpop (float): standard deviation in delta-p/p0 coordinate, defaults to 0
         seed (float): seed for psuedorandom generator. Defaults to None, and is generate during initialization.
+        quiet (Boolean): boolean describing whether to use exact centroid injection, defaults to false.
 
     """
     
     def __init__(self, npart, dist = 'Gaussian', emitx = 1e-6, emity = 1e-6, betax=1., alphax = 0., 
-                 betay =1., alphay=0., stdz=1., dpop=0, seed = None):
+                 betay =1., alphay=0., stdz=1., dpop=0, seed = None, quiet=False):
         """
         
         Args:
@@ -65,6 +66,7 @@ class StandardBunch(object):
             stdz (float): standard deviation in z-coordinate, defautls to 0
             dpop (float): standard deviation in delta-p/p0 coordinate, defaults to 0
             seed (float): seed for psuedorandom generator. Defaults to None, and is generate during initialization.
+            quiet (Boolean): boolean describing whether to use exact centroid injection, defaults to false.
         """
         
         self.npart = npart
@@ -101,8 +103,10 @@ class StandardBunch(object):
         self.particles = np.zeros((npart,7))
         
         #define particle IDs
-        self.particles[:,6] = np.arange(npart)
+        self.particles[:,6] = np.arange(npart)        
         
+        #define quiet injection attribute
+        self.quiet = quiet
           
         
     #Define beta and alpha properties which automatically update gamma
@@ -241,7 +245,12 @@ class StandardBunch(object):
                 
                 ptclCoords = np.array([xReal, pxReal, yReal, pyReal])
                 phaseSpaceList.append(ptclCoords)
-                ptclsMade += 1        
+                ptclsMade += 1 
+                
+                #Add 3 more particles if creating a quiet start
+                if self.quiet:
+                    self.exact_centroids(ptclCoords, phaseSpaceList)
+                    ptclsMade += 3
         
         self.particles[:,:4] = np.asarray(phaseSpaceList)
     
@@ -278,6 +287,21 @@ class StandardBunch(object):
         
         return self.emit - self.compute_potential(0, yHat)
         
+    def exact_centroids(self, ptclCoords, phaseSpaceList):
+        """Sets the centroid of the distribution in phase space to be zero - providing a quieter injection."""
+        
+        translation1 = np.array([-1,1,-1,1])
+        translation2 = np.array([-1,-1,-1,-1])
+        translation3 = np.array([1,-1,1,-1])
+
+        ptcl1 = ptclCoords * translation1
+        ptcl2 = ptclCoords * translation2
+        ptcl3 = ptclCoords * translation3
+
+        phaseSpaceList.append(ptcl1)
+        phaseSpaceList.append(ptcl2)
+        phaseSpaceList.append(ptcl3)
+        
         
 class NonlinearBunch(StandardBunch):
     
@@ -297,12 +321,14 @@ class NonlinearBunch(StandardBunch):
         dpop (float): standard deviation in delta-p/p0 coordinate, defaults to 0
         seed (float): seed for psuedorandom generator. Defaults to None, and is generate during initialization.
         quiet (Boolean): boolean describing whether to use exact centroid injection, defaults to false.
+        t (float): nonlinear strength parameter for the insert. Defaults to 0.1 (unitless).
+        c (float): the nonlinear aperture parameter (m^-1/2), defining poles in the x-axis. Defaults to 0.01.
         cutoff (float): cutoff parameter for the nonlinear Gaussian distributoin, defaults to 4.
 
     """
     
     def __init__(self, npart, dist = 'KV', emitx = 1e-6, emity = 1e-6, betax=1., alphax = 0., 
-                 betay =1., alphay=0., stdz=1., dpop=0, seed = None, queit=False,t = 0.1, c = 0.01, cutoff = 4):
+                 betay =1., alphay=0., stdz=1., dpop=0, seed = None, queit=False, t = 0.1, c = 0.01, cutoff = 4):
         """
         
         Args:
@@ -318,6 +344,8 @@ class NonlinearBunch(StandardBunch):
             dpop (float): standard deviation in delta-p/p0 coordinate, defaults to 0
             seed (float): seed for psuedorandom generator. Defaults to None, and is generate during initialization.
             quiet (Boolean): boolean describing whether to use exact centroid injection, defaults to false.
+            t (float): nonlinear strength parameter for the insert. Defaults to 0.1 (unitless).
+            c (float): the nonlinear aperture parameter (m^-1/2), defining poles in the x-axis. Defaults to 0.01.
             cutoff (float): cutoff parameter for the nonlinear Gaussian distributoin, defaults to 4.
         """
         
@@ -491,7 +519,8 @@ class NonlinearBunch(StandardBunch):
                 
                 #Add 3 more particles if creating a quiet start
                 if self.quiet:
-                    self.exact_centroids(ptclCoords)        
+                    self.exact_centroids(ptclCoords, phaseSpaceList)
+                    ptclsMade += 3       
         
         self.particles[:,:4] = np.asarray(phaseSpaceList)
     
@@ -547,7 +576,8 @@ class NonlinearBunch(StandardBunch):
                 
                 #Add 3 more particles if creating a quiet start
                 if self.quiet:
-                    self.exact_centroids(ptclCoords)
+                    self.exact_centroids(ptclCoords, phaseSpaceList)
+                    ptclsMade += 3
             else:
                 print "Initial value generated exceeds limiting H. Sampling new value."
         
@@ -616,8 +646,8 @@ class NonlinearBunch(StandardBunch):
                 
                 #Add 3 more particles if creating a quiet start
                 if self.quiet:
-                    self.exact_centroids(ptclCoords)
-                
+                    self.exact_centroids(ptclCoords, phaseSpaceList)
+                    ptclsMade += 3
             else:
                 print "Initial value generated exceeds limiting H. Sampling new value."
         
