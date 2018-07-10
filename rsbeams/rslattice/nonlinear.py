@@ -10,6 +10,7 @@ Date Created: 6/21/2018
 Last Updated: 6/21/2018
 """
 
+import numpy as np
 
 
 class NonlinearInsert(object):
@@ -72,20 +73,20 @@ class NonlinearInsert(object):
         f0 = self.length/4.0*(1.0+1.0/np.tan(np.pi*self.phase)**2)
         
         #define array of s-values
-        start = (l0/self.num_slices)*0.5
-        end = l0 - start
+        start = (self.length/self.num_slices)*0.5
+        end = self.length - start
         #Make an attribute as they could be useful for constructing the mad-x sequence
         self.s_vals = np.linspace(start,end,self.num_slices) 
         
         #set the initial beta value to help compare to lattice functions
-        self.beta0 = l0*(1.-0.0*(l0)/l0/f0)/np.sqrt(1.0-(1.0-l0/2.0/f0)**2)
+        self.beta0 = self.length*(1.-0.0*(self.length)/self.length/f0)/np.sqrt(1.0-(1.0-self.length/2.0/f0)**2)
         
         #set the beta functions as an attribute for comparing against other lattice functions
-        bn = l0*(1-self.s_vals*(l0-self.s_vals)/l0/f0)/np.sqrt(1.0-(1.0-l0/2.0/f0)**2)
+        bn = self.length*(1-self.s_vals*(self.length-self.s_vals)/self.length/f0)/np.sqrt(1.0-(1.0-self.length/2.0/f0)**2)
         self.betas = bn
         
-        knn = t*l0/self.num_slices/bn**2
-        cnll = c*np.sqrt(bn)
+        knn = self.t*self.length/self.num_slices/bn**2
+        cnll = self.c*np.sqrt(bn)
         knll = knn*cnll**2
         
         #Now set the knll and cnll parameters for each nllens object
