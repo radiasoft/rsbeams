@@ -35,7 +35,7 @@ def save_plot_and_check(plot_obj, file_name, force_error=False):
 #        print('File "',file_name,'" does exist.')
 #        print(os.stat(file_name))
 #        print('size: ', os.stat(file_name).st_size)
-        assert(os.stat(file_name).st_size > 29000)
+        assert(os.stat(file_name).st_size > 27000)
         assert(os.stat(file_name).st_size < 45000)
     else:
         # File doesn't exist; something went wrong
@@ -108,4 +108,4 @@ def test_beam_plot():
     if (is_interactive == True):
         my_plotter.show_plots()
 
-# test_beam_plot()
+test_beam_plot()
