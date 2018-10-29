@@ -57,7 +57,7 @@ class readSDDS:
 
         while True:
             new_line = str(self.openf.readline(), 'latin-1')
-            print(new_line, new_line.find('&data'))
+
             if new_line.find('&data') == 0:
                 self.header.append(new_line)
                 break
