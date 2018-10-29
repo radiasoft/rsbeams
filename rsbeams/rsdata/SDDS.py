@@ -1,3 +1,4 @@
+from future.builtins import str
 import numpy as np
 from struct import pack, unpack, calcsize
 from sys import byteorder
@@ -31,7 +32,7 @@ class readSDDS:
             Print additional data about detailing intermediate read in process.
         """
 
-        self.openf = open(input_file, 'r')
+        self.openf = open(input_file, 'rb')
         self.verbose = verbose
         self.header = []
         self.params = []
@@ -55,7 +56,8 @@ class readSDDS:
         """
 
         while True:
-            new_line = self.openf.readline()
+            new_line = str(self.openf.readline(), 'latin-1')
+            print(new_line, new_line.find('&data'))
             if new_line.find('&data') == 0:
                 self.header.append(new_line)
                 break
@@ -87,10 +89,10 @@ class readSDDS:
         for param in self.params:
             if param.find('type=string') > -1:
                 if param.find('fixed_value') > -1:  # Fixed value not present means string is in binary data
-                    print 'passed'
+                    print('passed')
                     pass
                 else:
-                    print 'used'
+                    print('used')
                     self.param_key.append('zi')
                     parameter_position +=2
                     self.param_key.append('=')
@@ -128,10 +130,10 @@ class readSDDS:
         self.column_size = calcsize(self.column_key)
 
         if self.verbose:
-            print "Parameter unpack size: %s bytes \nColumn unpack size: %s bytes" % (self.param_size, self.column_size)
+            print("Parameter unpack size: %s bytes \nColumn unpack size: %s bytes".format((self.param_size, self.column_size)))
 
         if self.verbose:
-            print "Parameter key string: %s \nColumn key string: %s" % (self.param_key, self.column_key)
+            print("Parameter key string: %s \nColumn key string: %s".format(self.param_key, self.column_key))
 
         return self.param_key, self.column_key
 
@@ -156,7 +158,7 @@ class readSDDS:
             self._read_header()
             self._parse_header()
             if self.verbose:
-                print "Header data read and parsed."
+                print("Header data read and parsed.")
 
         self.parameters = {}
 
@@ -173,7 +175,7 @@ class readSDDS:
                 param_data = param_data + (value,)
             else:
                 value = unpack(key, self.openf.read(calcsize(key)))
-                print value
+                print(value)
                 param_data = param_data + value
 
         for param, value in zip(self.param_names, param_data):
@@ -288,7 +290,7 @@ class writeSDDS:
         try:
             self.column_key += self.key_indentity[colType]
         except KeyError:
-            print "Not a Valid Data Type"
+            print("Not a Valid Data Type")
 
         for attribute in (colUnits, colSymbol, colFormatStr, colDescription):
             if attribute:
@@ -352,7 +354,7 @@ class writeSDDS:
             try:
                 columnDataPrint = np.column_stack(self.columnData)
             except ValueError:
-                print 'ERROR: All columns on a page must have same length'
+                print('ERROR: All columns on a page must have same length')
         elif len(self.columnData) == 1:
             columnDataPrint = self.columnData[0]
         else:
@@ -398,6 +400,6 @@ class writeSDDS:
         # elif self.dataMode == 'binary':
         #     columnDataPrint.astype('float64').tofile(outputFile)
         else:
-            print "NOT A DEFINED DATA TYPE"
+            print("NOT A DEFINED DATA TYPE")
 
         outputFile.close()
