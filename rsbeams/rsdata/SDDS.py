@@ -89,10 +89,12 @@ class readSDDS:
         for param in self.params:
             if param.find('type=string') > -1:
                 if param.find('fixed_value') > -1:  # Fixed value not present means string is in binary data
-                    print('passed')
+                    if self.verbose:
+                        print('passed')
                     pass
                 else:
-                    print('used')
+                    if self.verbose:
+                        print('used')
                     self.param_key.append('zi')
                     parameter_position +=2
                     self.param_key.append('=')
@@ -175,7 +177,8 @@ class readSDDS:
                 param_data = param_data + (value,)
             else:
                 value = unpack(key, self.openf.read(calcsize(key)))
-                print(value)
+                if self.verbose:
+                    print(value)
                 param_data = param_data + value
 
         for param, value in zip(self.param_names, param_data):
