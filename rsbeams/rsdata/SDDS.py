@@ -214,6 +214,15 @@ class readSDDS:
 
         return np.asarray(self.columns)
 
+    def close(self):
+        """
+        Close opened SDDS file.
+        Returns:
+
+        """
+        self.openf.close()
+
+
 
 headSDDS = "SDDS1\n"
 columnSDDS = """&column name=col%d, type=double, &end\n"""
@@ -358,6 +367,7 @@ class writeSDDS:
                 columnDataPrint = np.column_stack(self.columnData)
             except ValueError:
                 print('ERROR: All columns on a page must have same length')
+                return
         elif len(self.columnData) == 1:
             columnDataPrint = self.columnData[0]
         else:
@@ -384,16 +394,16 @@ class writeSDDS:
         outputFile.write('&data mode=%s, &end\n' % self.dataMode)
 
         # Begin data writeout
-        if self.dataMode == 'ascii':
-                outputFile.write('%s\n' % columnDataPrint.shape[0])
-        if self.dataMode == 'binary':
-                outputFile.write('%s' % pack('I', columnDataPrint.shape[0]))
-
         for parameter in self.parameterData:
             if self.dataMode == 'ascii':
                 outputFile.write('%s\n' % parameter)
             if self.dataMode == 'binary':
                 outputFile.write('%s' % (pack('d', parameter)))
+                
+        if self.dataMode == 'ascii':
+                outputFile.write('%s\n' % columnDataPrint.shape[0])
+        if self.dataMode == 'binary':
+                outputFile.write('%s' % pack('I', columnDataPrint.shape[0]))
 
         if self.dataMode == 'ascii':
             np.savetxt(outputFile, columnDataPrint)
