@@ -2,3 +2,4 @@ pykern
 pathos
 numpy
 scipy
+sympy>=1.2

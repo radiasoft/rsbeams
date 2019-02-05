@@ -1,7 +1,12 @@
+from .Beamline import StructuredBeamline
+
 """
 Convert elegant lte beamlines to the floor coordinate system of OPAL.
 Translate element types to OPAL from elegant syntax.
 """
+
+# TODO: Add a beamline length parameter
+# TODO: Add a copy function
 
 import numpy as np
 digits = '0123456789'
@@ -323,136 +328,6 @@ class BeamlineParser(object):
             return -1
 
         return line[0:end]
-
-
-defined_elements = {
-    'drift': ['L'],
-    'quadrupole': ['L', 'K1'],
-    'kquad': ['L', 'K1'],
-    'sbend': ['L', 'ANGLE', 'E1', 'E2'],
-    'csbend': ['L', 'ANGLE', 'E1', 'E2'],
-    'csrcsbend': ['L', 'ANGLE', 'E1', 'E2'],
-    'csrdrift': ['L'],
-    'rfca': ['None'],
-    'ecol': ['None'],
-    'sextupole': ['None'],
-    'marker': ['None'],
-    'bumper': ['None'],
-    'maxamp': ['None'],
-    'watch': ['None'],
-    'scraper': ['None'],
-    'pfilter': ['None'],
-    'kicker': ['None'],
-    'vkick': ['None'],
-    'hkick': ['None'],
-    'monitor': ['None'],  # Apparently, even though elegant's manual calls these 'moni', 'hmon', and 'vmon'
-    'hmonitor': ['None'],  # internally they have the full word 'monitor' in their name...
-    'vmonitor': ['None'],
-    'twiss': ['None'],
-    'wake': ['None'],
-    'malign': ['None'],
-    'charge': ['None']}
-
-
-class StructuredBeamline(object):
-    """
-    Holds Element objects and may contain other StructuredBeamline objects.
-    """
-    # TODO: Change main control sequence and beamline object to allow for multiple layers of sublines.
-    def __init__(self):
-        self.beamline_name = None
-        self.sequence = []
-
-    def set_beamline_name(self, beamline_name):
-        self.beamline_name = beamline_name
-
-    def add_element(self, element_name, element_type, element_parameters, subline=False):
-        if subline:
-            assert isinstance(self.sequence[-1], StructuredBeamline), "Last element is not type StructuredBeamline \
-                                                                      subline must be false"
-            self.sequence[-1].sequence.append(Element(element_name, element_type, **element_parameters))
-        else:
-            self.sequence.append(Element(element_name, element_type, **element_parameters))
-
-    def add_beamline(self, name):
-        self.sequence.append(StructuredBeamline())
-        self.sequence[-1].set_beamline_name(beamline_name=name)
-
-    def get_beamline_elements(self):
-        """
-        Returns a generator object containing all elements, in order, from the beamline and any sub-beamlines
-        it contains.
-        :return:
-        """
-
-        def generate_beamline(element):
-            if isinstance(element, (StructuredBeamline, list)):
-                try:
-                    element = element.sequence
-                except AttributeError:
-                    pass
-                for value in element:
-                    for subvalue in generate_beamline(value):
-                        yield subvalue
-            else:
-                yield element
-
-        return generate_beamline(self.sequence)
-
-        # Old recursion method. Can hit max recursion depth if beamline has > 1000 elements.
-        # def recursive_concatenation(element_list):
-        #     if isinstance(element_list[0], Element):
-        #         try:
-        #             return [element_list[0]] + recursive_concatenation(element_list[1:])
-        #         except IndexError:
-        #             return [element_list[0]]
-        #     else:
-        #         return recursive_concatenation(element_list[0].sequence + element_list[1:])
-        #
-        # return recursive_concatenation(self.sequence)
-
-
-class Element(object):
-    """
-    Class for holding parameters and attributes of beamline elements as common defined in particle tracking codes.
-    """
-    element_types = defined_elements
-
-    def __init__(self, element_name, element_type, **kwargs):
-        self.name = element_name
-        self.type = self.interpret_element(element_type)
-        self.parameters = {}
-
-        # Was going to maintain list of excepted parameters
-        # Feature is not working and may just be a bad idea
-        # This check for not just makes sure the element type exists at all
-        try:
-            type_dictionary = self.element_types[self.type]
-        except KeyError:
-            print(self.type)
-            raise
-
-        for parameter, value in kwargs.items():
-            # Might be nice to check at some point
-            # assert parameter in type_dictionary, "Parameter: {} is not supported \
-            #  by element type: {}".format(parameter, self.type)
-
-            self.parameters[parameter] = value
-
-    def interpret_element(self, name):
-        # TODO: I am leaving out a check for duplicate names on the theory that we are using a valid lte file
-        """
-        elegant seems to allow shortning of element names
-        as long is it is uniquely defined.
-
-        This method implements that functionality.
-        """
-        name = name.lower().strip()
-        for element in self.element_types:
-            if name == element[:len(name)]:
-                return element
-
-        print("COULD NOT FIND:", repr(name))
 
 
 def parse_rpn(expression):
