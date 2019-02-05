@@ -26,7 +26,14 @@ class StructuredBeamline(object):
     def __init__(self):
         self.beamline_name = None
         self.sequence = []
-        self.length = self._get_length()
+        self._length = self._get_length
+
+    @property
+    def length(self):
+        return self._length()
+    @length.setter
+    def length(self, *arg, **kwargs):
+        raise AttributeError("You cannot change beamline length")
 
     def set_beamline_name(self, beamline_name):
         self.beamline_name = beamline_name
