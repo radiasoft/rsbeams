@@ -1,5 +1,7 @@
 pykern
+seaborn
 pathos
 numpy
 scipy
 sympy>=1.2
+ruamel.yaml
