@@ -21,6 +21,7 @@ class StructuredBeamline(object):
                          [0, 0, 1, L],
                          [0, 0, 0, 1]))
     }
+    elements = {}
 
     def __init__(self):
         self.beamline_name = None
@@ -38,12 +39,32 @@ class StructuredBeamline(object):
         self.beamline_name = beamline_name
 
     def add_element(self, element_name, element_type, element_parameters, subline=False):
+        """
+        Insert a new element at the end of a beamline.
+        Can automatically be added to a subline if subline=True.
+        If `element_name` already exists a line is created to it instead. `element_type` and `element_parameters`
+        will be ignored in this case.
+        Args:
+            element_name: (str) Name of the element.
+            element_type: (str) Type of element. Ignored if element is a copy.
+            element_parameters: (dict) Parameters to give to the element. Ignored if element is a copy
+            subline: (bool) Should the element be appended to a subline at the end of the current beamline?
+
+        Returns:
+
+        """
+        if element_name in self.elements:
+            print('Element {} already exists. Inserting copy.'.format(element_name))
+            the_element = self.elements[element_name]
+        else:
+            the_element = Element(element_name, element_type, **element_parameters)
+            self.elements[element_name] = the_element
         if subline:
             assert isinstance(self.sequence[-1], StructuredBeamline), "Last element is not type StructuredBeamline \
                                                                       subline must be false"
-            self.sequence[-1].sequence.append(Element(element_name, element_type, **element_parameters))
+            self.sequence[-1].sequence.append(the_element)
         else:
-            self.sequence.append(Element(element_name, element_type, **element_parameters))
+            self.sequence.append(the_element)
 
     def add_beamline(self, name):
         self.sequence.append(StructuredBeamline())
