@@ -2,7 +2,6 @@ from .Element import Element
 from sympy import symbols, cosh, sinh, sqrt, lambdify
 from sympy.matrices import Matrix
 from ruamel import yaml
-# TODO: Add support for sub-lines into save/load
 
 
 class StructuredBeamline(object):
@@ -59,10 +58,17 @@ class StructuredBeamline(object):
         :param filename:
         :return:
         """
-        beamline = []
-        for pos, ele in enumerate(self.get_beamline_elements()):
-            beamline.append({'name': ele.name, **ele.parameters, 'type': ele.type, 'position': pos})
+        # Return elements preserving sub-line structures
+        def return_elements(line):
+            the_beamline = []
+            for ele in line.sequence:
+                if isinstance(ele, Element):
+                    the_beamline.append({'name': ele.name, **ele.parameters, 'type': ele.type})
+                else:
+                    the_beamline.append(return_elements(ele))
+            return the_beamline
 
+        beamline = return_elements(self)
         with open(filename, 'w') as outputfile:
             yaml.dump(beamline, outputfile, default_flow_style=False, Dumper=yaml.RoundTripDumper)
 
@@ -71,12 +77,18 @@ class StructuredBeamline(object):
             print("Cannot load a new beamline.\nThis StructuredBeamline is not empty.")
             return
         elements = yaml.load(open(filename, 'r'), Loader=yaml.Loader)
-        for pos, element in enumerate(elements):
-            if pos != element['position']:
-                print("Warning!: Element ordering may have been incorrectly loaded.")
-            self.add_element(element['name'], element['type'],
-                             {k: v for k, v in element.items()
-                              if (k != 'type') and (k != 'name') and (k != 'position')})
+
+        def create_beamline(elements, beamline):
+            for element in elements:
+                if isinstance(element, dict):
+                    beamline.add_element(element['name'], element['type'],
+                                     {k: v for k, v in element.items()
+                                      if (k != 'type') and (k != 'name')})
+                else:
+                    self.add_beamline(name=None)
+                    create_beamline(element, self.sequence[-1])
+
+        create_beamline(elements, self)
 
     def get_beamline_elements(self):
         """
