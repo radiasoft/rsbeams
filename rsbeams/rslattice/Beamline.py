@@ -23,10 +23,11 @@ class StructuredBeamline(object):
     }
     elements = {}
 
-    def __init__(self):
-        self.beamline_name = None
+    def __init__(self, name):
+        self.name = name
         self.sequence = []
         self._length = self._get_length
+        self._top = None  # Top level beamline if any
 
     @property
     def length(self):
@@ -34,9 +35,6 @@ class StructuredBeamline(object):
     @length.setter
     def length(self, *arg, **kwargs):
         raise AttributeError("You cannot change beamline length")
-
-    def set_beamline_name(self, beamline_name):
-        self.beamline_name = beamline_name
 
     def add_element(self, element_name, element_type, element_parameters, subline=False):
         """
@@ -59,6 +57,7 @@ class StructuredBeamline(object):
         else:
             the_element = Element(element_name, element_type, **element_parameters)
             self.elements[element_name] = the_element
+        the_element._beamline = self._top
         if subline:
             assert isinstance(self.sequence[-1], StructuredBeamline), "Last element is not type StructuredBeamline \
                                                                       subline must be false"
@@ -68,7 +67,11 @@ class StructuredBeamline(object):
 
     def add_beamline(self, name):
         self.sequence.append(StructuredBeamline())
-        self.sequence[-1].set_beamline_name(beamline_name=name)
+        self.sequence[-1].name = name
+        if self._top:
+            self.sequence[-1]._top = self._top
+        else:
+            self.sequence[-1]._top = self
 
     def save_beamline(self, filename):
         """
