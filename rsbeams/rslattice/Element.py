@@ -90,8 +90,8 @@ class Element(object):
     def beamline(self):
         return self._beamline
     @beamline.setter
-    def beamline(self):
-        pass
+    def beamline(self, *args, **kwargs):
+        raise AttributeError("You cannot change the element's address")
 
     def _get_edge(self):
         length = 0
