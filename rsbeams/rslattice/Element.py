@@ -43,13 +43,19 @@ class AgnosticDict(dict):
 class Element(object):
     """
     Class for holding parameters and attributes of beamline elements as common defined in particle tracking codes.
+    Element parameters are not case sensitive.
     """
     element_types = defined_elements
 
     def __init__(self, element_name, element_type, **kwargs):
+        # Element properties
         self.name = element_name
         self.type = self._interpret_element(element_type)
         self.parameters = AgnosticDict()
+        self._edge = self._get_edge
+
+        # Metadata
+        self._beamline = None  # Top level beamline if any
 
         # Was going to maintain list of excepted parameters
         # Feature is not working and may just be a bad idea
@@ -66,6 +72,37 @@ class Element(object):
             #  by element type: {}".format(parameter, self.type)
 
             self.parameters[parameter] = value
+
+    @property
+    def edge(self):
+        """
+        Position of the upstream edge of the element.
+        The position is given relative to the start of the top-level beamline containing this Element.
+        Returns: (float) position in meters.
+
+        """
+        return self._edge()
+    @edge.setter
+    def edge(self, *args, **kwargs):
+        raise AttributeError("You cannot directly set the element edge")
+
+    @property
+    def beamline(self):
+        return self._beamline
+    @beamline.setter
+    def beamline(self):
+        pass
+
+    def _get_edge(self):
+        length = 0
+        for ele in self._beamline.get_beamline_elements():
+            if ele != self:
+                try:
+                    length += ele.parameters['L']
+                except KeyError:
+                    pass
+
+        return length
 
     def _interpret_element(self, name):
         # TODO: I am leaving out a check for duplicate names on the theory that we are using a valid lte file
