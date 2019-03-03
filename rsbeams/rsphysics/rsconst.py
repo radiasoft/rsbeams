@@ -28,6 +28,8 @@ m_p = const.m_p              # proton mass [kg]
 m_e = const.m_e              # electron mass [kg]
 e = const.e                  # fundamental electric charge [C] (positive)
 
+MKS_factor = 1./(4.*math.pi*const.epsilon_0)
+
 KG_to_EV = c_SQ / e          # convert mass [kg] to effective energy [eV]
 EV_to_ERG = 1.602e-12        # convert energy from eV to erg
 C_to_STATC = const.c * 10.   # convert charge from coulombs to statcoulombs
