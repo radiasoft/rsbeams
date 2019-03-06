@@ -39,10 +39,9 @@ class BeamlineParser(object):
      '-' operator for reversing beamline direction
     """
 
-    def __init__(self, filename, beamline_name=None):
+    def __init__(self, filename, beamline_name):
         self.filename = filename
-        if not beamline_name:
-            beamline_name = 'BL1'
+        self.beamline_name = beamline_name.lower()
         self.beamline = StructuredBeamline(beamline_name)  # Holds StructuredBeamline object
         self.beamline_string = ''
         self.lines = {}
@@ -102,8 +101,6 @@ class BeamlineParser(object):
         :return:
         """
         assert self.beamline_name in self.lines, "The requested beamline is not found"
-
-        self.beamline.set_beamline_name(beamline_name=self.beamline_name)
 
         beamline_string = self.beamline_string[1:]  # Consume opening '('
         coefficient = ''
