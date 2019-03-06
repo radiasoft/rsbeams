@@ -66,8 +66,7 @@ class StructuredBeamline(object):
             self.sequence.append(the_element)
 
     def add_beamline(self, name):
-        self.sequence.append(StructuredBeamline())
-        self.sequence[-1].name = name
+        self.sequence.append(StructuredBeamline(name))
         if self._top:
             self.sequence[-1]._top = self._top
         else:
