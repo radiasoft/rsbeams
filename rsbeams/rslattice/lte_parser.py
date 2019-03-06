@@ -41,13 +41,12 @@ class BeamlineParser(object):
 
     def __init__(self, filename, beamline_name=None):
         self.filename = filename
-        self.beamline = StructuredBeamline()  # Holds StructuredBeamline object
+        if not beamline_name:
+            beamline_name = 'BL1'
+        self.beamline = StructuredBeamline(beamline_name)  # Holds StructuredBeamline object
         self.beamline_string = ''
         self.lines = {}
         self.rpn_variables = {}
-
-        if beamline_name:
-            self.beamline_name = beamline_name.lower()
 
         try:
             with open(filename, 'r') as open_file:
