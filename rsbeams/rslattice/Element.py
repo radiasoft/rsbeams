@@ -101,6 +101,8 @@ class Element(object):
                     length += ele.parameters['L']
                 except KeyError:
                     pass
+            else:
+                break
 
         return length
 

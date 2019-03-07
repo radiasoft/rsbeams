@@ -27,7 +27,7 @@ class StructuredBeamline(object):
         self.name = name
         self.sequence = []
         self._length = self._get_length
-        self._top = None  # Top level beamline if any
+        self._top = self  # Top level beamline if any
 
     @property
     def length(self):
