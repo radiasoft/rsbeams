@@ -139,7 +139,7 @@ class BeamlineParser(object):
             elif beamline_string.find(')') > -1:
                 next_element_end = beamline_string.find(')')
 
-            element_name = beamline_string[:next_element_end].rstrip()
+            element_name = beamline_string[:next_element_end].strip()
             # If element is a line definition then start recursion process
             if element_name in self.lines:
                 print("Starting on line:", element_name)

@@ -1,6 +1,9 @@
 defined_elements = {
     'drift': ['L'],
+    'edrift': ['L'],
     'quadrupole': ['L', 'K1'],
+    'kquadrupole': ['L', 'K1'],
+    'solenoid': ['None'],
     'kquad': ['L', 'K1'],
     'sbend': ['L', 'ANGLE', 'E1', 'E2'],
     'csbend': ['L', 'ANGLE', 'E1', 'E2'],
@@ -16,15 +19,16 @@ defined_elements = {
     'scraper': ['None'],
     'pfilter': ['None'],
     'kicker': ['None'],
-    'vkick': ['None'],
-    'hkick': ['None'],
+    'vkicker': ['None'],
+    'hkicker': ['None'],
     'monitor': ['None'],  # Apparently, even though elegant's manual calls these 'moni', 'hmon', and 'vmon'
     'hmonitor': ['None'],  # internally they have the full word 'monitor' in their name...
     'vmonitor': ['None'],
     'twiss': ['None'],
     'wake': ['None'],
     'malign': ['None'],
-    'charge': ['None']}
+    'charge': ['None'],
+    'ibscatter': ['None']}
 
 
 class AgnosticDict(dict):
