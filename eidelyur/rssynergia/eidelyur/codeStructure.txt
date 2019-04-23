@@ -1,0 +1,50 @@
+
+Welcome to rssynergia
+
+Support tools for Synergia
+
+    rssynergia package
+        Subpackages
+        Submodules
+        rssynergia.rssynergia_console module
+        Module contents
+    rssynergia
+        rssynergia package
+
+Indices and tables
+
+    Index
+    Module Index
+    Search Page
+
+
+
+rssynergia package
+Subpackages
+
+    rssynergia.base_diagnostics package
+        Submodules
+        rssynergia.base_diagnostics.basic_calcs module
+        rssynergia.base_diagnostics.diagplot module
+        rssynergia.base_diagnostics.diagplot2 module
+        rssynergia.base_diagnostics.elliptic_sp module
+        rssynergia.base_diagnostics.latticework module
+        rssynergia.base_diagnostics.lfplot module
+        rssynergia.base_diagnostics.options module
+        rssynergia.base_diagnostics.plotbeam module
+        rssynergia.base_diagnostics.pltbunch module
+        rssynergia.base_diagnostics.poincare module
+        rssynergia.base_diagnostics.read_bunch module
+        rssynergia.base_diagnostics.singleparticle module
+        rssynergia.base_diagnostics.workflow module
+        Module contents
+    rssynergia.elliptic package
+        Submodules
+        rssynergia.elliptic.EllipticBeam6D module
+        rssynergia.elliptic.ellipticBeam module
+        rssynergia.elliptic.ellipticBeamArb module
+        rssynergia.elliptic.ellipticPostProcessing module
+        rssynergia.elliptic.make6DEllipticBeam module
+        rssynergia.elliptic.spi module
+        rssynergia.elliptic.testEllipticBeam module
+        Module contents
