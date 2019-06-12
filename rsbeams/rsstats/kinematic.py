@@ -3,6 +3,13 @@ import sys
 import argparse as arg
 import numpy as np
 from scipy.constants import c, m_e, physical_constants
+from future.utils import iteritems
+
+# TODO: Priority #1: Need to go back to the principle that user puts in whatever units they desire
+# TODO: cont.  All calculations internall are cgs and then conversion is done to put in the form user requests
+# TODO: Priority #2: Comprehensive set of tests for combinations of input and output units
+
+# ERROR: kinematic -v 299788543.885 --unit SI: This returns numbers that are in eV but the units claim they're SI
 
 # TODO: Add functionality to the Converter class for stand-alone use in scripts/notebooks
 # TODO: Add output conversion to SI units
@@ -46,7 +53,10 @@ class Converter:
     Converter works by taking the input kinematic quantity and then always calculating beta and gamma;
     all other kinematic quantity calculations are then performed in terms of beta and gamma.
     """
-    def __init__(self, start_parser):
+    def __init__(self, momentum=None, velocity=None, energy=None, kinetic=None,
+                 betagamma=None, beta=None, gamma=None, mass=None,
+                 mass_unit='eV', input_unit='eV',
+                 start_parser=None):
         """
         Class that takes in a single kinematic quantity and particle mass and returns a list of other kinematic
         quantities. Options for input and the output are:
@@ -66,9 +76,11 @@ class Converter:
             None
             Prints results
         """
-
-        args = start_parser.parse_args()
-        self.args = {key: getattr(args, key) for key in vars(args)}
+        if start_parser:
+            args = start_parser.parse_args()
+            self.args = {key: getattr(args, key) for key in vars(args)}
+        else:
+            self.args = {k: v for k, v in iteritems(locals())}
 
         # Method to call based on the kinematic quantity the user inputs
         self.startup = {"momentum": self.start_momentum,
@@ -87,26 +99,26 @@ class Converter:
                         "betagamma": self.calcuate_betagamma,
                         "beta": None,
                         "gamma": None,
-                        "p_unit": "eV/c" * (args.input_unit == 'eV') + "kg * m/s" * (args.input_unit == 'SI'),
-                        "e_unit": "eV" * (args.input_unit == 'eV') + "J" * (args.input_unit == 'SI'),
+                        "p_unit": "eV/c" * (self.args['input_unit'] == 'eV') + "kg * m/s" * (self.args['input_unit'] == 'SI'),
+                        "e_unit": "eV" * (self.args['input_unit'] == 'eV') + "J" * (self.args['input_unit'] == 'SI'),
                         "mass": None,
-                        "mass_unit": "eV/c^2" * (args.mass_unit == 'eV') + "kg" * (args.mass_unit == 'SI'),
+                        "mass_unit": "eV/c^2" * (self.args['mass_unit'] == 'eV') + "kg" * (self.args['mass_unit'] == 'SI'),
                         "input": None,
                         "input_unit": None,
                         "input_type": None}
 
         # Match mass unit to input units. Print mass in units the user used for input though.
-        if args.mass_unit == "eV":
-            if args.mass:
-                self.mass = args.mass * (1 * (args.input_unit == 'eV') + 1 / ev_per_kg * (args.input_unit == 'SI'))
-                self.outputs["mass"] = args.mass
+        if self.args['mass_unit'] == "eV":
+            if self.args['mass']:
+                self.mass = self.args['mass'] * (1 * (self.args['input_unit'] == 'eV') + 1 / ev_per_kg * (self.args['input_unit'] == 'SI'))
+                self.outputs["mass"] = self.args['mass']
             else:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev
-        elif args.mass_unit == "SI":
-            if args.mass:
-                self.mass = args.mass * (1 * (args.input_unit == 'SI') + 1 / ev_per_kg * (args.input_unit == 'eV'))
-                self.outputs["mass"] = args.mass
+        elif self.args['mass_unit'] == "SI":
+            if self.outputs['mass']:
+                self.mass = self.outputs['mass'] * (1 * (self.outputs['input_unit'] == 'SI') + 1 / ev_per_kg * (self.outputs['input_unit'] == 'eV'))
+                self.outputs["mass"] = self.outputs['mass']
             else:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev / ev_per_kg
@@ -152,6 +164,8 @@ class Converter:
         """
 
         print(print_string.format(**self.outputs))
+
+        return self.outputs
 
     # All start methods used to convert input kinematic quantity to beta and gamma
     @staticmethod
@@ -231,8 +245,12 @@ class Converter:
 
     # All calculate methods are called to get necessary kinematic quantities
     def calculate_momentum(self, beta, gamma, **kwargs):
-
-        return beta * gamma * self.mass * c
+        # Avoid scope problems with variable c
+        if self.args['mass_unit'] == 'eV':
+            _c = 1
+        else:
+            _c = c
+        return beta * gamma * self.mass * _c
 
     def calculate_energy(self, gamma, **kwargs):
 
@@ -247,6 +265,7 @@ class Converter:
 
     def calculate_velocity(self, beta, **kwargs):
         return beta * c
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
