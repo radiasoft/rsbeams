@@ -73,7 +73,6 @@ class readSDDS:
         return self.header
 
     def _parse_header(self):
-        # TODO: the storage of columns and parameters as attributes is inconsistent. THey should probably just both be local variables, I don't think they need to be accessed excpet for debugging purposes.
         # TODO: figure out why param_key is list with just the key and col_key is just the string defining to key
         """
         Parse header data to instruct unpacking procedure.
@@ -223,7 +222,7 @@ class readSDDS:
 
     def _get_row_count(self, here=False):
         """
-        Get row count on a page.
+        Get row count on a page. Will leave file position position at start of the row count that was read.
         Args:
             here (boolean): If False then get the row count of the first page. Else try to read at current position.
 
@@ -236,6 +235,8 @@ class readSDDS:
         self._row_count = unpack('i', self.openf.read(calcsize('i')))[0]
         if not here:
             self.openf.seek(self.header_end_pointer)
+        else:
+            self.openf.seek(self.openf.tell() - calcsize('i'))
 
     def read(self, pages=None):
         """
@@ -504,9 +505,3 @@ class writeSDDS:
             print("NOT A DEFINED DATA TYPE")
 
         outputFile.close()
-
-
-if __name__ == '__main__':
-    ff = readSDDS('run_setup.output.sdds')
-    p, c = ff.read(pages=[0, 1, 2, 4])
-    print(p, c)
