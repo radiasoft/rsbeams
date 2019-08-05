@@ -1,7 +1,8 @@
 from future.builtins import str
 import numpy as np
-from struct import pack, unpack, calcsize
+from struct import pack, unpack, calcsize, error
 from sys import byteorder
+from copy import copy
 
 
 class readSDDS:
@@ -39,7 +40,7 @@ class readSDDS:
 
         self.param_key = ['=i']  # Include row count with parameters
         self.column_key = '='
-        self.pointer = 0
+        self.header_end_pointer = 0  #
         self.string_in_params = []
         self.string_in_columns = []
 
@@ -49,6 +50,10 @@ class readSDDS:
         self.param_names = ['rowCount']
         self.parameters = False
         self.columns = False
+
+        # Read and Parse header to start
+        self._read_header()
+        self._parse_header()
 
     def _read_header(self):
         """
@@ -64,11 +69,13 @@ class readSDDS:
             else:
                 self.header.append(new_line)
 
-        self.pointer = self.openf.tell()
+        self.header_end_pointer = self.openf.tell()
 
         return self.header
 
     def _parse_header(self):
+        # TODO: the storage of columns and parameters as attributes is inconsistent. THey should probably just both be local variables, I don't think they need to be accessed excpet for debugging purposes.
+        # TODO: figure out why param_key is list with just the key and col_key is just the string defining to key
         """
         Parse header data to instruct unpacking procedure.
         """
@@ -128,7 +135,7 @@ class readSDDS:
                 ie = param[i0:].find(',')
                 self.param_names.append(param[i0:i0+ie])
 
-        #self.param_size = calcsize(self.param_key)
+        self.param_size = calcsize(self.param_key[0])
         self.column_size = calcsize(self.column_key)
 
         if self.verbose:
@@ -139,7 +146,7 @@ class readSDDS:
 
         return self.param_key, self.column_key
 
-    def read_params(self):
+    def _read_params(self):
         """
         Read parameter data from the SDDS file.
 
@@ -149,10 +156,10 @@ class readSDDS:
             Dictionary object with parameters names and values.
         """
 
-        if self.parameters:
-            return self.parameters
-        else:
-            pass
+        # if self.parameters:
+        #     return self.parameters
+        # else:
+        #     pass
 
         try:
             self.parsef
@@ -165,7 +172,7 @@ class readSDDS:
         self.parameters = {}
 
         # Reset pointer back to beginning of binary data to start readin there
-        self.openf.seek(self.pointer)
+        # self.openf.seek(self.pointer)
 
         param_data = ()
         for key in self.param_key:
@@ -188,7 +195,7 @@ class readSDDS:
 
         return self.parameters
 
-    def read_columns(self):
+    def _read_columns(self):
         """
         Read column data from the SDDS file.
 
@@ -197,15 +204,15 @@ class readSDDS:
         columns: ndarray
             NumPy array with column data.
         """
-        if self.columns:
-            return np.asarray(self.columns)
-        else:
-            pass
+        # if self.columns:
+        #     return np.asarray(self.columns)
+        # else:
+        #     pass
 
         try:
             self.row_count
         except AttributeError:
-            self.read_params()
+            self._read_params()
 
         self.columns = []
 
@@ -213,6 +220,83 @@ class readSDDS:
             self.columns.append(unpack(self.column_key, self.openf.read(self.column_size)))
 
         return np.asarray(self.columns)
+
+    def _get_row_count(self, here=False):
+        """
+        Get row count on a page.
+        Args:
+            here (boolean): If False then get the row count of the first page. Else try to read at current position.
+
+        Returns:
+
+        """
+
+        if not here:
+            self.openf.seek(self.header_end_pointer)
+        self._row_count = unpack('i', self.openf.read(calcsize('i')))[0]
+        if not here:
+            self.openf.seek(self.header_end_pointer)
+
+    def read(self, pages=None):
+        """
+        Read data from the SDDS file into memory
+        Returns:
+
+        """
+        parameters = []
+        columns = []
+
+        # Construct list of pages
+        if pages:
+            if type(pages) == int:
+                pages = np.arange(pages)
+            elif type(pages) == list or type(pages) == tuple:
+                pages = np.array(pages)
+            else:
+                raise TypeError("pages must be an int, tuple, or list")
+        else:
+            def iter_always():
+                i = 0
+                while True:
+                    yield i
+                    i += 1
+            pages = iter_always()
+
+        # Get sizes to skip pages if needed
+        self._get_row_count()
+        header_size = self.header_end_pointer
+        param_size = self.param_size
+        # Need the size of all rows and columns (not just one row) for this
+        col_size = self.column_size * self._row_count
+
+        # Read all requested pages
+        for page in pages:
+
+            # Catch the end of file
+            try:
+                self._get_row_count(here=True)
+            except error as e:
+                # Catch if user requested an unreadable page
+                if type(pages) == np.ndarray:
+                    print("WARNING: Could not read page {}".format(page + 1))
+                break
+
+            # check if pages were skipped and update position
+            expected_position = page * (param_size + col_size) + header_size
+            if expected_position != self.openf.tell():
+                self.openf.seek(expected_position)
+
+            params = self._read_params()
+            parameters.append(copy(params))
+
+            if self.row_count > 0:
+                cols = self._read_columns()
+                columns.append(cols)
+
+        self.parameters = parameters
+        self.columns = np.asarray(columns)
+
+        return parameters, np.asarray(columns)
 
     def close(self):
         """
