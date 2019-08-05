@@ -36,7 +36,6 @@ class readSDDS:
         self.openf = open(input_file, 'rb')
         self.verbose = verbose
         self.header = []
-        self.params = []
 
         self.param_key = ['=i']  # Include row count with parameters
         self.column_key = '='
@@ -82,18 +81,19 @@ class readSDDS:
 
         self.parsef = True
 
+        params = []
         columns = []
         parameter_position = 0
 
         # Find Parameters and Column
         for line in self.header:
             if line.find('&parameter') == 0:
-                self.params.append(line)
+                params.append(line)
             if line.find('&column') == 0:
                 columns.append(line)
 
         # Construct format string for parameters and columns
-        for param in self.params:
+        for param in params:
             if param.find('type=string') > -1:
                 if param.find('fixed_value') > -1:  # Fixed value not present means string is in binary data
                     if self.verbose:
@@ -127,7 +127,7 @@ class readSDDS:
             else:
                 pass
 
-        for param in self.params:
+        for param in params:
             if param.find('type=string') > -1 and param.find('fixed_value=') > -1:
                 pass
             else:
@@ -239,7 +239,11 @@ class readSDDS:
 
     def read(self, pages=None):
         """
-        Read data from the SDDS file into memory
+        Read page(s) from the SDDS file into memory.
+        Args:
+            pages (int or list or tuple): If int then the number of pages to read. If iterable then a list of
+            the pages to read using 0-based indexing. If None then all pages will be read.
+
         Returns:
 
         """
@@ -272,19 +276,19 @@ class readSDDS:
         # Read all requested pages
         for page in pages:
 
+            # check if pages were skipped and update position
+            expected_position = page * (param_size + col_size) + header_size
+            if expected_position != self.openf.tell():
+                self.openf.seek(expected_position)
+
             # Catch the end of file
             try:
                 self._get_row_count(here=True)
             except error as e:
                 # Catch if user requested an unreadable page
                 if type(pages) == np.ndarray:
-                    print("WARNING: Could not read page {}".format(page + 1))
+                    print("WARNING: Could not read page {}".format(page))
                 break
-
-            # check if pages were skipped and update position
-            expected_position = page * (param_size + col_size) + header_size
-            if expected_position != self.openf.tell():
-                self.openf.seek(expected_position)
 
             params = self._read_params()
             parameters.append(copy(params))
@@ -500,3 +504,9 @@ class writeSDDS:
             print("NOT A DEFINED DATA TYPE")
 
         outputFile.close()
+
+
+if __name__ == '__main__':
+    ff = readSDDS('run_setup.output.sdds')
+    p, c = ff.read(pages=[0, 1, 2, 4])
+    print(p, c)
