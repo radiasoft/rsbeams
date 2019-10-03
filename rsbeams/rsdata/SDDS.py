@@ -101,7 +101,7 @@ class readSDDS:
                     if self.verbose:
                         print('used')
                     self.param_key.append('zi')
-                    parameter_position +=2
+                    parameter_position += 2
                     self.param_key.append('=')
             elif param.find('type=double') > -1:
                 self.param_key[parameter_position] += 'd'
@@ -131,7 +131,7 @@ class readSDDS:
             else:
                 i0 = param.find('name') + 5
                 ie = param[i0:].find(',')
-                self.param_names.append(param[i0:i0+ie])
+                self.param_names.append(param[i0:i0 + ie])
         for i, column in enumerate(columns):
             i0 = column.find('name') + 5
             ie = column[i0:].find(',')
@@ -141,7 +141,8 @@ class readSDDS:
         self.column_size = calcsize(self.column_key)
 
         if self.verbose:
-            print("Parameter unpack size: %s bytes \nColumn unpack size: %s bytes".format((self.param_size, self.column_size)))
+            print("Parameter unpack size: %s bytes \nColumn unpack size: %s bytes".format(
+                (self.param_size, self.column_size)))
 
         if self.verbose:
             print("Parameter key string: %s \nColumn key string: %s".format(self.param_key, self.column_key))
@@ -218,7 +219,6 @@ class readSDDS:
 
         self.columns = []
         # TODO: Can probably use numpy to read in columns much more quickly and split after
-        # TODO: Need to assign row counts to every page and not have global row count
         for i in range(self.row_count):
             try:
                 self.columns.append(unpack(self.column_key, self.openf.read(self.column_size)))
@@ -239,11 +239,31 @@ class readSDDS:
 
         if not here:
             self.openf.seek(self.header_end_pointer)
-        self._row_count = unpack('i', self.openf.read(calcsize('i')))[0]
+        row_count = unpack('i', self.openf.read(calcsize('i')))[0]
+
+        # Set file position appropriately
         if not here:
             self.openf.seek(self.header_end_pointer)
         else:
             self.openf.seek(self.openf.tell() - calcsize('i'))
+
+        return row_count
+
+    def _set_all_row_counts(self):
+        row_count = [self._get_row_count(here=False)]
+        while True:
+            # Move to next page
+            current_position = self.openf.tell()
+            page_size = self.param_size + row_count[-1] * self.column_size
+            self.openf.seek(current_position + page_size)
+
+            # Catch the end of file
+            try:
+                row_count.append(self._get_row_count(here=True))
+            except error as e:
+                break
+
+        self._row_count = row_count
 
     def read(self, pages=None):
         """
@@ -272,20 +292,21 @@ class readSDDS:
                 while True:
                     yield i
                     i += 1
+
             pages = iter_always()
 
         # Get sizes to skip pages if needed
-        self._get_row_count()
+        self._set_all_row_counts()
         header_size = self.header_end_pointer
         param_size = self.param_size
         # Need the size of all rows and columns (not just one row) for this
-        col_size = self.column_size * self._row_count
+        col_sizes = self.column_size * np.array(self._row_count)
 
         # Read all requested pages
         for page in pages:
 
             # check if pages were skipped and update position
-            expected_position = page * (param_size + col_size) + header_size
+            expected_position = page * param_size + np.sum(col_sizes[:page]) + header_size
             if expected_position != self.openf.tell():
                 self.openf.seek(expected_position)
 
@@ -317,7 +338,6 @@ class readSDDS:
 
         """
         self.openf.close()
-
 
 
 headSDDS = "SDDS1\n"
@@ -483,7 +503,7 @@ class writeSDDS:
         for column in self.columnAttributes:
             for attribute in zip(column, columnAttributeStr):
                 if attribute[0]:
-                    columnString = ''.join((columnString,'%s%s, ' % (attribute[1], attribute[0])))
+                    columnString = ''.join((columnString, '%s%s, ' % (attribute[1], attribute[0])))
             outputFile.write('&column %s &end\n' % columnString)
             columnString = ''
 
@@ -495,11 +515,11 @@ class writeSDDS:
                 outputFile.write('%s\n' % parameter)
             if self.dataMode == 'binary':
                 outputFile.write('%s' % (pack('d', parameter)))
-                
+
         if self.dataMode == 'ascii':
-                outputFile.write('%s\n' % columnDataPrint.shape[0])
+            outputFile.write('%s\n' % columnDataPrint.shape[0])
         if self.dataMode == 'binary':
-                outputFile.write('%s' % pack('I', columnDataPrint.shape[0]))
+            outputFile.write('%s' % pack('I', columnDataPrint.shape[0]))
 
         if self.dataMode == 'ascii':
             np.savetxt(outputFile, columnDataPrint)
