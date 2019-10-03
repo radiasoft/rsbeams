@@ -9,16 +9,14 @@ class readSDDS:
     """
     Class for reading SDDS data files.
     Usage:
-        After initialization parameter data can be read out using the 'read_params' method
-        and column data through the 'read_columns' method.
+        Call `read` method to to load data from the SDDS file into memory.
 
     Caveats:
         - System is assumed little-endian
         - Data stored in binary
         - No array data (only parameters and columns)
-        - Strings stored as fixed are not included in parameters (strings stored in binary data are included)
+        - Strings stored as fixed are not included in parameters (strings stored in binary format are included)
         - Files that store string data in columns are not currently supported
-        - Multipage SDDS files are nt currently supported
     """
 
     def __init__(self, input_file, verbose=False):
@@ -47,6 +45,7 @@ class readSDDS:
         self.column_size = 0
 
         self.param_names = ['rowCount']
+        self.column_names = {}
         self.parameters = False
         self.columns = False
 
@@ -133,6 +132,10 @@ class readSDDS:
                 i0 = param.find('name') + 5
                 ie = param[i0:].find(',')
                 self.param_names.append(param[i0:i0+ie])
+        for i, column in enumerate(columns):
+            i0 = column.find('name') + 5
+            ie = column[i0:].find(',')
+            self.column_names[column[i0:i0 + ie]] = i
 
         self.param_size = calcsize(self.param_key[0])
         self.column_size = calcsize(self.column_key)
@@ -214,9 +217,13 @@ class readSDDS:
             self._read_params()
 
         self.columns = []
-
+        # TODO: Can probably use numpy to read in columns much more quickly and split after
+        # TODO: Need to assign row counts to every page and not have global row count
         for i in range(self.row_count):
-            self.columns.append(unpack(self.column_key, self.openf.read(self.column_size)))
+            try:
+                self.columns.append(unpack(self.column_key, self.openf.read(self.column_size)))
+            except error:
+                break
 
         return np.asarray(self.columns)
 
@@ -505,3 +512,10 @@ class writeSDDS:
             print("NOT A DEFINED DATA TYPE")
 
         outputFile.close()
+
+
+if __name__ == '__main__':
+    ff = readSDDS('run_setup.output.sdds')
+    print(ff.param_key[0], ff.column_key)
+    p, c = ff.read(pages=[0, 1, 2, 4])
+    print(p, c.shape)
