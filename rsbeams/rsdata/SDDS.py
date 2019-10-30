@@ -3,7 +3,7 @@ import numpy as np
 from struct import pack, unpack, calcsize, error
 from sys import byteorder
 from copy import copy
-
+# TODO: Will probably need a new dict object that uses ordered Dict for py2 and userdict or standard dict for py3
 
 class readSDDS:
     """
@@ -341,9 +341,9 @@ class readSDDS:
 
 
 headSDDS = "SDDS1\n"
-columnSDDS = """&column name=col%d, type=double, &end\n"""
-parameterSDDS = """&parameter name=col%d, type=double, &end\n"""
-columnAttributeStr = ['name=', 'type=', 'units=', 'symbol=', 'format_string=', 'description=']
+columnAttributeStr = {'colName': ['name=', '{}'], 'colType': ['type=', '{}'], 'colUnits': ['units=', '"{}"'],
+                      'colSymbol': ['symbol=', '"{}"'], 'colFormatStr': ['format_string=', '"{}"'],
+                      'colDescription': ['description=', '"{}"'], 'colFieldLen': ['field_length=', '"{}"']}
 parameterAttributeStr = ['name=', 'type=', 'units=', 'symbol=', 'format_string=', 'description=']
 
 
@@ -380,14 +380,13 @@ class writeSDDS:
         self.endianness = byteorder
         self.page = page
         self.columns = []
-        self.columnData = []
-        self.columnAttributes = []
         self.parameters = []
         self.parameterData = []
         self.parameterAttributes = []
         self.column_key = '='
 
-    def create_column(self, colName, colData, colType, colUnits='', colSymbol='', colFormatStr='', colDescription=''):
+    def create_column(self, colName, colData, colType,
+                      colUnits='', colSymbol='', colFormatStr='', colDescription='', colFieldLen=0):
         """
         Creates a column data object that can be written to file.
 
@@ -408,25 +407,16 @@ class writeSDDS:
         colDescription: str (optional)
             Optional description of the column to write to file.
         """
+        assert colType in self.key_indentity.keys(), "Allowed data types are: 'double', 'short', 'long' "
 
-        self.columns.append(colName)
-        self.columnAttributes.append([])
-        self.columnAttributes[-1].append(colName)
-        self.columnAttributes[-1].append(colType)
-        self.columnData.append(colData)
+        column_data = {'colName': colName, 'colData': colData, 'colType': colType, 'colUnits': colUnits,
+                       'colSymbol': colSymbol, 'colFormatStr': colFormatStr, 'colDescription': colDescription,
+                       'colFieldLen': colFieldLen}
 
-        try:
-            self.column_key += self.key_indentity[colType]
-        except KeyError:
-            print("Not a Valid Data Type")
+        self.columns.append(column_data)
 
-        for attribute in (colUnits, colSymbol, colFormatStr, colDescription):
-            if attribute:
-                self.columnAttributes[-1].append(attribute)
-            else:
-                self.columnAttributes[-1].append('')
-
-    def create_param(self, parName, parData, parType, parUnits='', parSymbol='', parFormatStr='', parDescription=''):
+    def create_paramater(self, parName, parData, parType,
+                         parUnits='', parSymbol='', parFormatStr='', parDescription=''):
         """
         Creates a parameter data object that can be written to file.
 
@@ -460,6 +450,31 @@ class writeSDDS:
             else:
                 self.parameterAttributes[-1].append('')
 
+    def _write_header(self, outputFile):
+        columnString = ''
+        parameterString = ''
+        outputFile.write(self.sddsIdentifier.encode())
+        outputFile.write('!# {}-endian\n'.format(self.endianness).encode())
+
+        for parameter in self.parameterAttributes:
+            for attribute in zip(parameter, parameterAttributeStr):
+                if attribute[0]:
+                    parameterString = ''.join((parameterString, '{}{}, '.format(attribute[1], attribute[0])))
+            outputFile.write('&parameter {}&end\n'.format(parameterString).encode())
+            parameterString = ''
+
+        for column in self.columns:
+            for key, value in column.items():
+                if key in columnAttributeStr:
+                    # split boolean to avoid the hassle of testing existance of arrays separately
+                    if value:
+                        columnString = ''.join((columnString, '{field}{value}, '.format(field=columnAttributeStr[key][0],
+                                                                    value=columnAttributeStr[key][1].format(value))))
+            outputFile.write('&column {} &end\n'.format(columnString).encode())
+            columnString = ''
+
+        outputFile.write('&data mode={}, &end\n'.format(self.dataMode).encode())
+
     def save_sdds(self, fileName, dataMode='ascii'):
         """
         Saves the parameters and columns to file. Parameters and columns are written to the file in the order
@@ -474,60 +489,43 @@ class writeSDDS:
         """
 
         self.dataMode = dataMode
-        columnString = ''
-        parameterString = ''
-        outputFile = open(fileName, 'w')
+        outputFile = open(fileName, 'wb')
 
-        if len(self.columnData) > 1:
+        # Verify Column Data Integrity
+        if len(self.columns) > 1:
             try:
-                columnDataPrint = np.column_stack(self.columnData)
+                column_data = np.column_stack([columns['colData'] for columns in self.columns])
             except ValueError:
                 print('ERROR: All columns on a page must have same length')
                 return
-        elif len(self.columnData) == 1:
-            columnDataPrint = self.columnData[0]
+        elif len(self.columns) == 1:
+            column_data = self.columns[0]['colData']
         else:
-            columnDataPrint = np.empty([0])
+            column_data = np.empty([0])
 
         # Begin header writeout
-        outputFile.write(self.sddsIdentifier)
-        outputFile.write('!# %s-endian\n' % self.endianness)
+        self._write_header(outputFile)
 
-        for parameter in self.parameterAttributes:
-            for attribute in zip(parameter, parameterAttributeStr):
-                if attribute[0]:
-                    parameterString = ''.join((parameterString, '%s%s, ' % (attribute[1], attribute[0])))
-            outputFile.write('&parameter %s&end\n' % parameterString)
-            parameterString = ''
-
-        for column in self.columnAttributes:
-            for attribute in zip(column, columnAttributeStr):
-                if attribute[0]:
-                    columnString = ''.join((columnString, '%s%s, ' % (attribute[1], attribute[0])))
-            outputFile.write('&column %s &end\n' % columnString)
-            columnString = ''
-
-        outputFile.write('&data mode=%s, &end\n' % self.dataMode)
+        # Write row count. Write 0 if no rows.
+        if self.dataMode == 'ascii':
+            outputFile.write('%s\n' % column_data.shape[0])
+        if self.dataMode == 'binary':
+            outputFile.write(pack('I', column_data.shape[0]))
 
         # Begin data writeout
         for parameter in self.parameterData:
             if self.dataMode == 'ascii':
                 outputFile.write('%s\n' % parameter)
             if self.dataMode == 'binary':
-                outputFile.write('%s' % (pack('d', parameter)))
+                outputFile.write(pack('=d', parameter))
+                # outputFile.write('{}'.format(pack('d', parameter)))
 
         if self.dataMode == 'ascii':
-            outputFile.write('%s\n' % columnDataPrint.shape[0])
-        if self.dataMode == 'binary':
-            outputFile.write('%s' % pack('I', columnDataPrint.shape[0]))
-
-        if self.dataMode == 'ascii':
-            np.savetxt(outputFile, columnDataPrint)
+            np.savetxt(outputFile, column_data)
         elif self.dataMode == 'binary':
-            for row in columnDataPrint:
-                outputFile.write('%s' % (pack(self.column_key, *row)))
+            column_data.tofile(outputFile)
         # elif self.dataMode == 'binary':
-        #     columnDataPrint.astype('float64').tofile(outputFile)
+        #     column_data.astype('float64').tofile(outputFile)
         else:
             print("NOT A DEFINED DATA TYPE")
 
