@@ -4,6 +4,8 @@ from struct import pack, unpack, calcsize, error
 from sys import byteorder
 from copy import copy
 # TODO: Will probably need a new dict object that uses ordered Dict for py2 and userdict or standard dict for py3
+# TODO: Would be nice to refactor the old camel case convention variables
+# TODO: Add multipage write support - mostly means defining how they are input
 
 class readSDDS:
     """
@@ -344,7 +346,9 @@ headSDDS = "SDDS1\n"
 columnAttributeStr = {'colName': ['name=', '{}'], 'colType': ['type=', '{}'], 'colUnits': ['units=', '"{}"'],
                       'colSymbol': ['symbol=', '"{}"'], 'colFormatStr': ['format_string=', '"{}"'],
                       'colDescription': ['description=', '"{}"'], 'colFieldLen': ['field_length=', '"{}"']}
-parameterAttributeStr = ['name=', 'type=', 'units=', 'symbol=', 'format_string=', 'description=']
+parameterAttributeStr = {'parName': ['name=', '{}'], 'parType': ['type=', '{}'], 'parUnits': ['units=', '"{}"'],
+                         'parSymbol': ['symbol=', '"{}"'], 'parFormatStr': ['format_string=', '"{}"'],
+                         'parDescription': ['description=', '"{}"'], 'parFixedVal': ['fixed_value=', '{}']}
 
 
 class writeSDDS:
@@ -381,9 +385,8 @@ class writeSDDS:
         self.page = page
         self.columns = []
         self.parameters = []
-        self.parameterData = []
-        self.parameterAttributes = []
         self.column_key = '='
+        self.dataMode = 'ascii'
 
     def create_column(self, colName, colData, colType,
                       colUnits='', colSymbol='', colFormatStr='', colDescription='', colFieldLen=0):
@@ -406,7 +409,14 @@ class writeSDDS:
             May specify the form of the printf string for use by SDDS.
         colDescription: str (optional)
             Optional description of the column to write to file.
+        colFieldLen: int (optional)
+            For ASCII data, the optional field length field specifies the number of characters occupied by
+            the data for the column. If zero, the data is assumed to be bounded by whitespace characters. If
+            negative, the absolute value is taken as the field length, but leading and trailing whitespace characters
+            will be deleted from string data. This feature permits reading fixed-field-length FORTRAN
+            output without modification of the data to include separators
         """
+        # TODO: Need to implement handler for FieldLen parameter setting once I support strings
         assert colType in self.key_indentity.keys(), "Allowed data types are: 'double', 'short', 'long' "
 
         column_data = {'colName': colName, 'colData': colData, 'colType': colType, 'colUnits': colUnits,
@@ -416,7 +426,7 @@ class writeSDDS:
         self.columns.append(column_data)
 
     def create_paramater(self, parName, parData, parType,
-                         parUnits='', parSymbol='', parFormatStr='', parDescription=''):
+                         parUnits='', parSymbol='', parFormatStr='', parDescription='', parFixedVal=None):
         """
         Creates a parameter data object that can be written to file.
 
@@ -437,18 +447,24 @@ class writeSDDS:
             May specify form of the printf string for use by SDDS.
         parDescription: str (optional)
             Optional description of the parameter to be written to the file.
+        parFixedVal: (float, int, str) (optional) May be used to store fixed data in the file header, instead
+            of the data body. If given then parData must be None.
         """
+        assert parType in self.key_indentity.keys(), "Allowed data types are: 'double', 'short', 'long' "
 
-        self.parameters.append(parName)
-        self.parameterAttributes.append([])
-        self.parameterAttributes[-1].append(parName)
-        self.parameterAttributes[-1].append(parType)
-        self.parameterData.append(parData)
-        for attribute in (parUnits, parSymbol, parFormatStr, parDescription):
-            if attribute:
-                self.parameterAttributes[-1].append(attribute)
-            else:
-                self.parameterAttributes[-1].append('')
+        # Handle variable data type possibility for fixed_value
+        if parFixedVal:
+            assert parData is None, "Using fixed value requires parData=None"
+            if type(parFixedVal) in [float, int]:
+                pass
+            elif type(parFixedVal) == str:
+                parFixedVal = '"{}"'.format(parFixedVal)
+
+        parameter_data = {'parName': parName, 'parData': parData, 'parType': parType, 'parUnits': parUnits,
+                          'parSymbol': parSymbol, 'parFormatStr': parFormatStr, 'parDescription': parDescription,
+                          'parFixedVal': parFixedVal}
+
+        self.parameters.append(parameter_data)
 
     def _write_header(self, outputFile):
         columnString = ''
@@ -456,10 +472,11 @@ class writeSDDS:
         outputFile.write(self.sddsIdentifier.encode())
         outputFile.write('!# {}-endian\n'.format(self.endianness).encode())
 
-        for parameter in self.parameterAttributes:
-            for attribute in zip(parameter, parameterAttributeStr):
-                if attribute[0]:
-                    parameterString = ''.join((parameterString, '{}{}, '.format(attribute[1], attribute[0])))
+        for parameter in self.parameters:
+            for key, value in parameter.items():
+                if (key in parameterAttributeStr.keys()) and value:
+                    parameterString = ''.join((parameterString, '{field}{value}, '.format(field=parameterAttributeStr[key][0],
+                                                                                          value=parameterAttributeStr[key][1].format(value))))
             outputFile.write('&parameter {}&end\n'.format(parameterString).encode())
             parameterString = ''
 
@@ -507,25 +524,24 @@ class writeSDDS:
         self._write_header(outputFile)
 
         # Write row count. Write 0 if no rows.
-        if self.dataMode == 'ascii':
-            outputFile.write('%s\n' % column_data.shape[0])
         if self.dataMode == 'binary':
+            # Row count only needed in binary
             outputFile.write(pack('I', column_data.shape[0]))
 
-        # Begin data writeout
-        for parameter in self.parameterData:
-            if self.dataMode == 'ascii':
-                outputFile.write('%s\n' % parameter)
-            if self.dataMode == 'binary':
-                outputFile.write(pack('=d', parameter))
-                # outputFile.write('{}'.format(pack('d', parameter)))
-
+        # Write Parameters
+        for parameter in self.parameters:
+            # Pass if fixed_value used (parData will be None)
+            if parameter['parData']:
+                if self.dataMode == 'ascii':
+                        outputFile.write('{}\n'.format(parameter['parData']).encode())
+                if self.dataMode == 'binary':
+                        outputFile.write(pack('={}'.format(self.key_indentity[parameter['parType']]),
+                                              parameter['parData']))
+        # Write Columns
         if self.dataMode == 'ascii':
             np.savetxt(outputFile, column_data)
         elif self.dataMode == 'binary':
             column_data.tofile(outputFile)
-        # elif self.dataMode == 'binary':
-        #     column_data.astype('float64').tofile(outputFile)
         else:
             print("NOT A DEFINED DATA TYPE")
 
