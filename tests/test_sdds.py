@@ -11,18 +11,24 @@ def read_file(filename, par=None, col=None):
     check, err = call1.communicate()
     if err:
         return None, None, None
+    else:
+        check = check.decode('utf-8')
     if par:
         call2 = Popen('sdds2stream -par={} {}'.format(par, filename), shell=True, stdout=PIPE, stderr=PIPE)
         par, err = call2.communicate()
         if err:
             return None, None, None
+        else:
+            par = par.decode('utf-8')
     if col:
         call2 = Popen('sdds2stream -col={} {}'.format(col, filename), shell=True, stdout=PIPE, stderr=PIPE)
         col, err = call2.communicate()
         if err:
             return None, None, None
+        else:
+            col = col.decode('utf-8')
 
-    return check.decode('utf-8'), par.decode('utf-8'), col.decode('utf-8')
+    return check, par, col
 
 
 class TestWriteBinary(unittest.TestCase):
