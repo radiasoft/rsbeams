@@ -6,6 +6,8 @@ from copy import copy
 # TODO: Will probably need a new dict object that uses ordered Dict for py2 and userdict or standard dict for py3
 # TODO: Would be nice to refactor the old camel case convention variables
 # TODO: Add multipage write support - mostly means defining how they are input
+# TODO: There may be initial nuance with the row count parameter. See no_row_counts in &data command from standard.
+
 
 class readSDDS:
     """
@@ -374,7 +376,7 @@ class writeSDDS:
 
     sddsIdentifier = headSDDS
 
-    key_indentity = {'double': 'd', 'short': 's', 'long': 'i'}
+    key_indentity = {'double': 'd', 'short': 's', 'long': 'i', 'string': None}
 
     def __init__(self, page=1, readInFormat='numpyArray'):
         """
@@ -525,7 +527,7 @@ class writeSDDS:
 
         # Write row count. Write 0 if no rows.
         if self.dataMode == 'binary':
-            # Row count only needed in binary
+            # Row count precedes parameter entries in a binary file
             outputFile.write(pack('I', column_data.shape[0]))
 
         # Write Parameters
@@ -537,11 +539,20 @@ class writeSDDS:
                 if self.dataMode == 'binary':
                         outputFile.write(pack('={}'.format(self.key_indentity[parameter['parType']]),
                                               parameter['parData']))
+
+        # Write row count. Write 0 if no rows.
+        if self.dataMode == 'ascii':
+            # Row count follows parameter entries in an ascii file
+            # Should not appear in ascii if 0
+            if column_data.shape[0]:
+                outputFile.write('{}\n'.format(column_data.shape[0]).encode())
+
         # Write Columns
         if self.dataMode == 'ascii':
             np.savetxt(outputFile, column_data)
         elif self.dataMode == 'binary':
             column_data.tofile(outputFile)
+            # outputFile.write(pack('=i7si8s', *column_data))  Fixed Test for ascii output Chicago New York
         else:
             print("NOT A DEFINED DATA TYPE")
 

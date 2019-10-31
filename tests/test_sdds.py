@@ -72,6 +72,19 @@ class TestWriteAscii(unittest.TestCase):
     def test_parameter_two(self):
         self.assertEqual(float(self.par2),  42)
 
+# Test for binary string write out in columns
+# class TestStringWriteBinary(unittest.TestCase):
+#
+#     def setUp(self):
+#         test1 = writeSDDS('file1.sdds')
+#         test1.create_column('col1', [7, "Chicago".encode(), 8, "New York".encode()], 'string')
+#         test1.save_sdds('file1.sdds', 'binary')
+#
+#         self.status, _, self.col1 = read_file('file1.sdds', col='col1')
+#
+#     def test_status_one(self):
+#         self.assertEqual(self.status, 'ok\n')
+
 
 if __name__ == '__main__':
     unittest.main()
