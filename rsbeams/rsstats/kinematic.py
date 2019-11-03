@@ -2,7 +2,7 @@
 import sys
 import argparse as arg
 import numpy as np
-from scipy.constants import c, m_e, physical_constants
+from scipy.constants import e, c, m_e, physical_constants
 from future.utils import iteritems
 
 # TODO: Priority #1: Need to go back to the principle that user puts in whatever units they desire
@@ -29,7 +29,7 @@ input = parser.add_mutually_exclusive_group(required=True)
 input.add_argument("-p", "--momentum", dest="momentum", type=float, help="Input momentum value. Default unit: eV/c")
 input.add_argument("-v", "--velocity", dest="velocity", type=float, help="Input velocity value. Default unit: m/s")
 input.add_argument("-E", "--energy", dest="energy", type=float, help="Input velocity value. Default unit eV")
-input.add_argument("-KE", "--kenergy", dest="kinetic", type=float, help="Input kinetic energy value. Default unit eV")
+input.add_argument("-KE", "--kenergy", dest="kenergy", type=float, help="Input kinetic energy value. Default unit eV")
 input.add_argument("-bg", "--betagamma", dest="betagamma", type=float, help="Input beta*gamma value. Default unit none")
 input.add_argument("-b", "--beta", dest="beta", type=float, help="Input beta value. Default unit none")
 input.add_argument("-g", "--gamma", dest="gamma", type=float, help="Input gamma value. Default unit none")
@@ -46,6 +46,11 @@ parser.add_argument("--unit", dest="input_unit", choices=["SI", "eV"], default="
                     "'SI' for standard SI units on all inputs.\n"
                     "'eV' for the respective electron volt based unit "
                     "for all inputs.\nDefaults to 'eV'.\n")
+parser.add_argument("--output_unit", dest="output_unit", choices=["SI", "eV"], default="eV",
+                    help="Set output unit for mass and kinetmatics. Options are:\n"
+                    "'SI' for standard SI units on all outputs.\n"
+                    "'eV' for the respective electron volt based unit "
+                    "for all outputs.\nDefaults to 'eV'.\n")
 
 
 class Converter:
@@ -53,9 +58,9 @@ class Converter:
     Converter works by taking the input kinematic quantity and then always calculating beta and gamma;
     all other kinematic quantity calculations are then performed in terms of beta and gamma.
     """
-    def __init__(self, momentum=None, velocity=None, energy=None, kinetic=None,
+    def __init__(self, momentum=None, velocity=None, energy=None, kenergy=None,
                  betagamma=None, beta=None, gamma=None, mass=None,
-                 mass_unit='eV', input_unit='eV',
+                 mass_unit='eV', input_unit='eV', output_unit='eV',
                  start_parser=None):
         """
         Class that takes in a single kinematic quantity and particle mass and returns a list of other kinematic
@@ -81,12 +86,23 @@ class Converter:
             self.args = {key: getattr(args, key) for key in vars(args)}
         else:
             self.args = {k: v for k, v in iteritems(locals())}
+            for key in ['mass_unit', 'input_unit', 'output_unit']:
+                assert self.args[key] == 'eV' or self.args[key] == 'SI', "Units must be given as SI or eV"
+            declaration = 0
+            for key in ['momentum', 'velocity', 'energy', 'kenergy', 'betagamma', 'beta', 'gamma']:
+                if self.args[key]:
+                    declaration += 1
+            assert declaration == 1, "One and only one initial kinematic quantity must be provided"
+
+        # Convert to eV for internal use
+        if self.args['input_unit'] == 'SI':
+            self._unit_convert(input_unit='SI', input_dict=self.args)
 
         # Method to call based on the kinematic quantity the user inputs
         self.startup = {"momentum": self.start_momentum,
                         "velocity": self.start_velocity,
                         "energy": self.start_energy,
-                        "kinetic": self.start_kenergy,
+                        "kenergy": self.start_kenergy,
                         "betagamma": self.start_betagamma,
                         "beta": self.start_beta,
                         "gamma": self.start_gamma}
@@ -99,10 +115,10 @@ class Converter:
                         "betagamma": self.calcuate_betagamma,
                         "beta": None,
                         "gamma": None,
-                        "p_unit": "eV/c" * (self.args['input_unit'] == 'eV') + "kg * m/s" * (self.args['input_unit'] == 'SI'),
-                        "e_unit": "eV" * (self.args['input_unit'] == 'eV') + "J" * (self.args['input_unit'] == 'SI'),
+                        "p_unit": "eV/c" * (self.args['output_unit'] == 'eV') + "kg * m/s" * (self.args['output_unit'] == 'SI'),
+                        "e_unit": "eV" * (self.args['output_unit'] == 'eV') + "J" * (self.args['output_unit'] == 'SI'),
                         "mass": None,
-                        "mass_unit": "eV/c^2" * (self.args['mass_unit'] == 'eV') + "kg" * (self.args['mass_unit'] == 'SI'),
+                        "mass_unit": "eV/c^2" * (self.args['output_unit'] == 'eV') + "kg" * (self.args['output_unit'] == 'SI'),
                         "input": None,
                         "input_unit": None,
                         "input_type": None}
@@ -162,6 +178,8 @@ class Converter:
         energy: {energy} {e_unit}
         kinetic energy: {kenergy} {e_unit}
         """
+        if self.args['output_unit'] == 'SI':
+            self._unit_convert(input_unit='eV', input_dict=self.outputs)
 
         print(print_string.format(**self.outputs))
 
@@ -245,12 +263,8 @@ class Converter:
 
     # All calculate methods are called to get necessary kinematic quantities
     def calculate_momentum(self, beta, gamma, **kwargs):
-        # Avoid scope problems with variable c
-        if self.args['mass_unit'] == 'eV':
-            _c = 1
-        else:
-            _c = c
-        return beta * gamma * self.mass * _c
+
+        return beta * gamma * self.mass
 
     def calculate_energy(self, gamma, **kwargs):
 
@@ -265,6 +279,19 @@ class Converter:
 
     def calculate_velocity(self, beta, **kwargs):
         return beta * c
+
+    def _unit_convert(self, input_unit, input_dict):
+        # momentum energy kenergy
+        conversion_factors = {
+            'momentum': 1 / e * c,
+            'energy': 1 / e,
+            'kenergy': 1 / e,
+            'mass': 1 / e * c**2
+        }
+        for key in conversion_factors:
+            print(key, input_dict[key], (conversion_factors[key]), 2 * (input == 'SI') - 1)
+            if input_dict[key]:
+                input_dict[key] = input_dict[key] * (conversion_factors[key])**(2 * (input_unit == 'SI') - 1)
 
 
 if __name__ == "__main__":
