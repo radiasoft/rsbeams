@@ -1,5 +1,6 @@
 from future.builtins import str
 import numpy as np
+import shlex
 from struct import pack, unpack, calcsize, error
 from sys import byteorder
 from copy import copy
@@ -7,6 +8,85 @@ from copy import copy
 # TODO: Would be nice to refactor the old camel case convention variables
 # TODO: Add multipage write support - mostly means defining how they are input
 # TODO: There may be initial nuance with the row count parameter. See no_row_counts in &data command from standard.
+# TODO: Need to support additional_header_lines option (never actually seen this used though)
+
+
+def _return_type(string):
+    target = 'type='
+    type_field_position = string.find(target)
+    if type_field_position < 0:
+        return None
+    for key in data_types.keys():
+        if string[type_field_position:type_field_position+len(key)].find(key) > -1:
+            return key
+    return None
+
+# Accepted namelists in header. &data is treated as a special case.
+sdds_namelists = ['&column', '&parameter', '&description', '&array', '&include']
+data_types = {'double': 'd', 'short': 'h', 'long': 'l', 'string': 's', 'char': 'c'}
+
+class Datum:
+    def __init__(self, namelist):
+        self.namelist = namelist
+        self.type_key = None
+        self.parse_namelist()
+        self.set_data_type()
+
+    def parse_namelist(self):
+        namelist = shlex.split(self.namelist)
+        for name in self.fields.keys():
+            for entry in namelist:
+                if name in entry:
+                    start = entry.find('=')
+                    self.fields[name] = entry[start:].rstrip(',')
+
+    def set_data_type(self):
+        data_type = self.fields['type']
+        if data_type == 'string':
+            self.type_key = '{}' + data_type[data_type]
+        else:
+            self.type_key = data_type[data_type]
+
+class Parameter(Datum):
+    def __init__(self, namelist):
+        self.fields = {'name': '', 'symbol': '', 'units': '', 'description': '',
+                       'format_string': '', 'type': '', 'fixed_value': None}
+        super(Datum, self).__init__(namelist)
+
+    def parse_fixed_value(self):
+        fixed_value = self.fields['fixed_value']
+        data_type = self.fields['type']
+        if fixed_value:
+            if data_type in ['short', 'long']:
+                self.fields['fixed_value'] = int(fixed_value)
+            elif data_type == 'double':
+                self.fields['fixed_value'] = float(fixed_value)
+            elif data_type in ['string', 'char']:
+                try:
+                    self.fields['fixed_value'] = str(fixed_value).decode('utf-8')
+                except AttributeError:
+                    self.fields['fixed_value'] = str(fixed_value)
+
+class Column(Datum):
+    def __init__(self, namelist):
+        self.fields = {'name': '', 'symbol': '', 'units': '', 'description': '',
+                       'format_string': '', 'type': '', 'field_length': 0}
+        super(Datum, self).__init__(namelist)
+
+    def set_data_type(self):
+        # Override to account for field_length setting
+        data_type = self.fields['type']
+        if data_type == 'string':
+            field_length = self.fields['field_length'] == 0
+            if field_length == 0:
+                self.type_key = '{}' + data_type[data_type]
+            else:
+                self.type_key = '{}'.format(abs(field_length)) + data_type[data_type]
+        else:
+            self.type_key = data_type[data_type]
+
+# Available namelists from SDDS standard
+supported_namelists = {'&parameter': Parameter, '&column': Column}
 
 
 class readSDDS:
@@ -42,16 +122,20 @@ class readSDDS:
         self.param_key = ['=i']  # Include row count with parameters
         self.column_key = '='
         self.header_end_pointer = 0  #
-        self.string_in_params = []
-        self.string_in_columns = []
 
+
+        self._parameter_keys = []
         self.param_size = 0
-        self.column_size = 0
-
         self.param_names = ['rowCount']
+        self.parameters = {}
+
+        self._column_keys = []
+        self.column_size = 0
         self.column_names = {}
-        self.parameters = False
         self.columns = False
+
+        # Hold objects for different allowed types
+        self.data = {key: [] for key in supported_namelists}
 
         # Read and Parse header to start
         self._read_header()
@@ -61,97 +145,38 @@ class readSDDS:
         """
         Read in ASCII data of the header to string and organize.
         """
-
+        # TODO: Need a catch for &include here to at least one level of nesting
         while True:
-            new_line = str(self.openf.readline(), 'latin-1')
-
-            if new_line.find('&data') == 0:
-                self.header.append(new_line)
+            namelist = []
+            new_line = str(self.openf.readline(), 'latin-1')  # Not clear if the restricted st of latin-1 is what we want or not (if we assume just ascii then its fine)
+            if new_line[0] == '!':
+                # Skip comments
+                continue
+            elif np.any([nl in new_line for nl in sdds_namelists]):
+                # Log entries that describe data
+                namelist.append(new_line)
+                while '&end' not in new_line:
+                    if new_line[0] == '!':
+                        continue
+                    new_line = str(self.openf.readline(), 'latin-1')
+                    namelist.append(new_line)
+                self.header.append(''.join(namelist))
+            elif new_line.find('&data') == 0:
+                # Final entry in the header is always &data
+                namelist.append(new_line)
+                while '&end' not in new_line:
+                    if new_line[0] == '!':
+                        continue
+                    new_line = str(self.openf.readline(), 'latin-1')
+                self.header.append(''.join(namelist))
                 break
             else:
-                self.header.append(new_line)
+                raise Exception("Header is corrupted")
 
+        # Log data start position
         self.header_end_pointer = self.openf.tell()
 
         return self.header
-
-    def _parse_header(self):
-        # TODO: figure out why param_key is list with just the key and col_key is just the string defining to key
-        """
-        Parse header data to instruct unpacking procedure.
-        """
-
-        self.parsef = True
-
-        params = []
-        columns = []
-        parameter_position = 0
-
-        # Find Parameters and Column
-        for line in self.header:
-            if line.find('&parameter') == 0:
-                params.append(line)
-            if line.find('&column') == 0:
-                columns.append(line)
-
-        # Construct format string for parameters and columns
-        for param in params:
-            if param.find('type=string') > -1:
-                if param.find('fixed_value') > -1:  # Fixed value not present means string is in binary data
-                    if self.verbose:
-                        print('passed')
-                    pass
-                else:
-                    if self.verbose:
-                        print('used')
-                    self.param_key.append('zi')
-                    parameter_position += 2
-                    self.param_key.append('=')
-            elif param.find('type=double') > -1:
-                self.param_key[parameter_position] += 'd'
-            elif param.find('type=long') > -1:
-                self.param_key[parameter_position] += 'i'
-            elif param.find('type=short') > -1:
-                self.param_key[parameter_position] += 's'
-            else:
-                pass
-
-        if self.param_key[-1] == '=':
-            self.param_key.pop(-1)  # Remove the last '=' that will be added if final entry is string
-
-        for column in columns:
-            if column.find('type=double') > -1:
-                self.column_key += 'd'
-            elif column.find('type=long') > -1:
-                self.column_key += 'i'
-            elif column.find('type=short') > -1:
-                self.column_key += 's'
-            else:
-                pass
-
-        for param in params:
-            if param.find('type=string') > -1 and param.find('fixed_value=') > -1:
-                pass
-            else:
-                i0 = param.find('name') + 5
-                ie = param[i0:].find(',')
-                self.param_names.append(param[i0:i0 + ie])
-        for i, column in enumerate(columns):
-            i0 = column.find('name') + 5
-            ie = column[i0:].find(',')
-            self.column_names[column[i0:i0 + ie]] = i
-
-        self.param_size = calcsize(self.param_key[0])
-        self.column_size = calcsize(self.column_key)
-
-        if self.verbose:
-            print("Parameter unpack size: %s bytes \nColumn unpack size: %s bytes".format(
-                (self.param_size, self.column_size)))
-
-        if self.verbose:
-            print("Parameter key string: %s \nColumn key string: %s".format(self.param_key, self.column_key))
-
-        return self.param_key, self.column_key
 
     def _read_params(self):
         """
@@ -163,26 +188,8 @@ class readSDDS:
             Dictionary object with parameters names and values.
         """
 
-        # if self.parameters:
-        #     return self.parameters
-        # else:
-        #     pass
-
-        try:
-            self.parsef
-        except AttributeError:
-            self._read_header()
-            self._parse_header()
-            if self.verbose:
-                print("Header data read and parsed.")
-
-        self.parameters = {}
-
-        # Reset pointer back to beginning of binary data to start readin there
-        # self.openf.seek(self.pointer)
-
         param_data = ()
-        for key in self.param_key:
+        for key in self.data['&Parameter']:
             if key[0] == 'z':
                 str_length = unpack('i', self.openf.read(4))[0]
                 str_size = calcsize('=' + 'c' * str_length)
@@ -485,7 +492,7 @@ class writeSDDS:
         for column in self.columns:
             for key, value in column.items():
                 if key in columnAttributeStr:
-                    # split boolean to avoid the hassle of testing existance of arrays separately
+                    # split logic to avoid the hassle of testing existance of arrays separately
                     if value:
                         columnString = ''.join((columnString, '{field}{value}, '.format(field=columnAttributeStr[key][0],
                                                                     value=columnAttributeStr[key][1].format(value))))
