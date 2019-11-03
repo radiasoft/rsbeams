@@ -1,15 +1,16 @@
 defined_elements = {
-    'drift': ['L'],
-    'edrift': ['L'],
-    'quadrupole': ['L', 'K1'],
-    'kquadrupole': ['L', 'K1'],
+    'drift': ['l'],
+    'edrift': ['l'],
+    'quadrupole': ['l', 'k1'],
+    'kquadrupole': ['l', 'k1'],
     'solenoid': ['None'],
-    'kquad': ['L', 'K1'],
-    'sbend': ['L', 'ANGLE', 'E1', 'E2'],
-    'csbend': ['L', 'ANGLE', 'E1', 'E2'],
-    'csrcsbend': ['L', 'ANGLE', 'E1', 'E2'],
+    'kquad': ['l', 'k1'],
+    'edge': ['None'],
+    'sbend': ['l', 'angle', 'e1', 'e2', 'hgap', 'fint'],
+    'csbend': ['l', 'angle', 'e1', 'e2'],
+    'csrcsbend': ['l', 'angle', 'e1', 'e2'],
     'csrdrift': ['L'],
-    'rfca': ['None'],
+    'rfca': ['l', 'volt', 'frequency', 'phase', 'h'],
     'ecol': ['None'],
     'sextupole': ['None'],
     'marker': ['None'],
@@ -98,6 +99,9 @@ class Element(object):
         raise AttributeError("You cannot change the element's address")
 
     def _get_edge(self):
+        # TODO: because repeated element instances are all just references this will fail when called for a repeated
+        # TODO:  element. Could just have the attributes point to the same location and make the Element instance
+        # TODO:  different for each. Need to test this approach. Means nothing else will be shared.
         length = 0
         for ele in self._beamline.get_beamline_elements():
             if ele != self:

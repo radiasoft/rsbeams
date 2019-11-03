@@ -84,11 +84,11 @@ class BeamlineParser(object):
 
 class Trace3d(BeamlineParser):
     elements = {
-        'drift': ['l'],
-        'quadrupole': ['k1', 'l', 'dx', 'dy', 'of'],
-        'rfca': ['etl', 'phase', 'egf', 'dwf', 'h'],
-        'edge': ['beta', 'r', 'g', 'k1', 'k2'],
-        'sbend': ['angle', 'r', 'index', 'vf']
+        'drift': ['L'],
+        'quadrupole': ['K1', 'L', 'DX', 'DY', 'OF'],
+        'rfca': ['VOLT', 'PHASE', 'EGF', 'CHANGE_P0', 'H'],
+        'edge': ['BETA', 'R', 'G', 'K1', 'K2'],
+        'sbend': ['ANGLE', 'R', 'INDEX', 'VF']
     }
 
     classifiers = {
@@ -103,18 +103,18 @@ class Trace3d(BeamlineParser):
         # Multiply by to get BeamLine Units (mostly SI)
 
         # length
-        'l': 1e-3,
+        'L': 1e-3,
         # dipoles
-        'r': 1e-3,
-        'g': 1e-3,
+        'R': 1e-3,
+        'G': 1e-3,
         'dt': np.pi / 180.,
-        'angle': np.pi / 180.,
-        'beta': np.pi / 180.,
+        'ANGLE': np.pi / 180.,
+        'BETA': np.pi / 180.,
         # quadrupoles
-        'dx': 1e-3,
-        'dy': 1e-3,
+        'DX': 1e-3,
+        'DY': 1e-3,
         # cavities
-        'etl': 1e6
+        'VOLT': 1e6,
 
     }
 
@@ -190,7 +190,135 @@ class Trace3d(BeamlineParser):
             type = self.get_element_type(line)
             parameters = self.get_element_parameters(line, type)
             self._convert_units(parameters)
-            self.beamline.add_element(str(name), self.classifiers[type], parameters)
-            self._standardize()
+            try:
+                self.handlers[self.classifiers[type]](name, parameters, self.beamline)
+            except KeyError:
+                self.beamline.add_element(str(name), self.classifiers[type], parameters)
+            self._standardize()  # TODO: Change this to handler
+
+    def handle_bends(self):
+        bend_edges = []
+        seq = self.beamline.sequence
+        for i, ele in enumerate(seq):
+            if ele.type == 'sbend':
+                E1 = seq[i - 1].parameters['BETA']
+                E2 = seq[i + 1].parameters['BETA']
+                HGAP = seq[i - 1].parameters['G'] / 2.
+                FINT = seq[i - 1].parameters['K1']
+                self.beamline.edit_element(i, ['E1', 'E2', 'HGAP', 'FINT'], [E1, E2, HGAP, FINT])
+
+                bend_edges.extend([seq[i - 1], seq[i + 1]])
+
+        for edge in bend_edges:
+            seq.remove(edge)
+
+    def handle_cavities(self):
+        cavities = []
+        phases = []
+        seq = self.beamline.sequence
+        for i, ele in enumerate(seq):
+            if ele.type == 'rfca':
+                cavities.append(i)
+                phases.append(90. - ele.parameters['phase'] )
+
+                if True:
+                    L = seq[i - 1].parameters['L'] + seq[i + 1].parameters['L']
+                    self.beamline.edit_element(i - 1, ['L',], [0.0,])
+                    self.beamline.edit_element(i + 1, ['L',], [0.0,])
+                    self.beamline.edit_element(i, ['L', ], [L, ])
+
+        for cav in cavities:
+            self.beamline.edit_element(cav, ['phase']*len(phases), phases)
+
+
+class TraceWin(Trace3d):
+    elements = {
+        'drift': ['L'],
+        'quadrupole': ['K1', 'L', 'DX', 'DY', 'OF'],
+        'sbend': ['ANGLE', 'R', 'INDEX', 'VF'],
+        'dtl_cell': ['L', 'LQ1', 'LQ2', 'GC', 'B1', 'B2', 'VOLT', 'PHASE', 'R', 'P', 'BETA_S', 'T_S', 'KTS', 'K2TS']
+    }
+
+    classifiers = {
+        'drift': 'drift',
+        'quad': 'quadrupole',
+        'dtl_cel': 'dtl_cell'
+    }
+
+    conversions = {
+        # Multiply by to get BeamLine Units (mostly SI)
+
+        # length
+        'L': 1e-3,
+        # quadrupoles
+
+        # cavities
+        'LQ1': 1e-3,
+        'LQ2': 1e-3,
+    }
+
+    @staticmethod
+    def handle_dtl_cell(name, cell, beamline):
+        q1_L = cell['LQ1']
+        q2_L = cell['LQ2']
+        cavity_L = cell['L'] - q1_L - q2_L
+
+        q1_K1 = cell['B1']
+        q2_K1 = cell['B2']
+
+        cavity_PHASE = cell['PHASE'] + 90.
+
+        beamline.add_element(name + '_q1', 'quadrupole', {'k1': q1_K1, 'l': q1_L})
+        beamline.add_element(name + 'cav', 'rfca', {'l': cavity_L, 'volt': cell['VOLT'], 'phase': cavity_PHASE})
+        beamline.add_element(name + '_q2', 'quadrupole', {'k1': q2_K1, 'l': q2_L})
+
+    handlers = {
+        'dtl_cell': handle_dtl_cell.__func__
+    }
+
+    def __init__(self, filename, beamline_name):
+        super(TraceWin, self).__init__(filename, beamline_name)
+        self.comment_character = ';'
+        self.beamline_start_position = None
+        self.beamline_end_position = None
+
+        self.name_count = 0  # TRACEWIN doesn't name elements
+
+    def get_element_parameters(self, line, type):
+        values = findall(r"[-+]?\d*\.\d+|\d+", line)
+        names = self.elements[self.classifiers[type]]
+
+        param_dict = {}
+        for param_name, param_val in zip(names, values):
+            param_dict[param_name] = float(param_val)
+
+        if len(names) != len(values):
+            print("WARNING: Element {} {} had a parameter mismatch".format(self.get_element_name(line),
+                                                                           self.classifiers[self.get_element_type(line)]))
+
+        return param_dict
+
+    def get_element_type(self, line):
+        element_name = line.split()[0]
+
+        return element_name.lower()
+
+    def get_element_name(self, line):
+        name = 'e' + str(self.name_count)
+        self.name_count += 1
+
+        return name
+
+    def _standardize(self):
+        pass
+
+    def find_beamlines(self):
+        # Manually set beamline file line positions for now
+        pass
+
+
+
+
+
 
 
