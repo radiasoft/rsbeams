@@ -21,7 +21,7 @@ class StructuredBeamline(object):
                          [0, 0, 1, L],
                          [0, 0, 0, 1]))
     }
-    elements = {}
+    elements = {}  # TODO: This needs to be moved into __init__
 
     def __init__(self, name):
         self.name = name
@@ -73,6 +73,7 @@ class StructuredBeamline(object):
             self.sequence[-1]._top = self
 
     def save_beamline(self, filename):
+        # TODO: make top level be beamline name. Will need to change load structure.
         """
         WARNING: This will only work correctly on Python 3
 

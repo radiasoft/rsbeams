@@ -434,7 +434,7 @@ class writeSDDS:
 
         self.columns.append(column_data)
 
-    def create_paramater(self, parName, parData, parType,
+    def create_parameter(self, parName, parData, parType,
                          parUnits='', parSymbol='', parFormatStr='', parDescription='', parFixedVal=None):
         """
         Creates a parameter data object that can be written to file.
