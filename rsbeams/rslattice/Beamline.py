@@ -21,10 +21,11 @@ class StructuredBeamline(object):
                          [0, 0, 1, L],
                          [0, 0, 0, 1]))
     }
-    elements = {}
+
 
     def __init__(self, name):
         self.name = name
+        self.elements = {}
         self.sequence = []
         self._length = self._get_length
         self._top = self  # Top level beamline if any
