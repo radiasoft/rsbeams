@@ -1,6 +1,6 @@
 import unittest
-from rsbeams.rsdata.SDDS import readSDDS
-from headers import header1, header2, header3
+from rsbeams.rsdata.SDDS import readSDDS, supported_namelists
+from headers import header1, header2, header3, header4
 
 
 class TestHeaderRead(unittest.TestCase):
@@ -51,6 +51,57 @@ class TestHeaderRead(unittest.TestCase):
         os.remove('header2.sdds')
         os.remove('header3.sdds')
 
+
+class TestHeaderParse(unittest.TestCase):
+    # Skip read header method and extract directly into a list since we know our example structure
+    def setUp(self):
+        with open('header1.sdds', 'w') as f1:
+            f1.write(header1)
+        with open('header2.sdds', 'w') as f2:
+            f2.write(header2)
+        with open('header3.sdds', 'w') as f3:
+            f3.write(header3)
+        with open('header4.sdds', 'w') as f4:
+            f4.write(header4)
+
+    def test_header1(self):
+        reader = object.__new__(readSDDS)
+        reader.data = {key: [] for key in supported_namelists.keys()}
+        reader.header = []
+        with open('header1.sdds', 'r') as f1:
+            f1.readline()
+            for file_line in f1.readlines()[2:]:
+                reader.header.append(file_line)
+        reader._parse_header()
+        for key, val in reader.data.items():
+            for insets in val:
+                print("Raw Header: {}".format(insets.namelist))
+                print("Namelist type: {}".format(key))
+                for k,v in insets.fields.items():
+                    print("{}: {}".format(k, v))
+
+    def test_header2(self):
+        reader = object.__new__(readSDDS)
+        reader.data = {key: [] for key in supported_namelists.keys()}
+        reader.header = []
+        with open('header4.sdds', 'r') as f2:
+            f2.readline()
+            for file_line in f2.readlines()[2:]:
+                reader.header.append(file_line)
+        reader._parse_header()
+        for key, val in reader.data.items():
+            for insets in val:
+                print("Raw Header: {}".format(insets.namelist))
+                print("Namelist type: {}".format(key))
+                for k,v in insets.fields.items():
+                    print("{}: {}".format(k, v))
+
+    def tearDown(self):
+        import os
+        os.remove('header1.sdds')
+        os.remove('header2.sdds')
+        os.remove('header3.sdds')
+        os.remove('header4.sdds')
 # class TestReadBinary1(unittest.TestCase):
 #     filename = 'test_read_1_bunch.out'
 #

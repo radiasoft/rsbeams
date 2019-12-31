@@ -10,7 +10,7 @@ from copy import copy
 # TODO: There may be initial nuance with the row count parameter. See no_row_counts in &data command from standard.
 # TODO: Need to support additional_header_lines option (never actually seen this used though)
 
-
+# TODO: Next construct reader dtype for NumPy from each Datum
 def _return_type(string):
     target = 'type='
     type_field_position = string.find(target)
@@ -29,6 +29,17 @@ def _read_line(open_file):
     return line
 
 
+def _shlex_split(line):
+    # Cannot just use shlex.split
+    # Need to ignore single-quotes due to their use as common characters in accelerator notation
+    lex = shlex.shlex(line, posix=True)
+    lex.quotes = '"'
+    lex.whitespace_split = True
+    lex.commenters = ''
+
+    return list(lex)
+
+
 # Accepted namelists in header. &data is treated as a special case.
 sdds_namelists = ['&column', '&parameter', '&description', '&array', '&include']
 data_types = {'double': 'd', 'short': 'h', 'long': 'l', 'string': 's', 'char': 'c'}
@@ -39,29 +50,33 @@ class Datum:
         self.namelist = namelist
         self.type_key = None
         self.parse_namelist()
-        self.set_data_type()
 
     def parse_namelist(self):
-        namelist = shlex.split(self.namelist)
+        namelist = _shlex_split(self.namelist)
         for name in self.fields.keys():
             for entry in namelist:
                 if name in entry:
                     start = entry.find('=')
-                    self.fields[name] = entry[start:].rstrip(',')
+                    self.fields[name] = entry[start + 1:].rstrip(',')
 
     def set_data_type(self):
         data_type = self.fields['type']
         if data_type == 'string':
             self.type_key = '{}' + data_type[data_type]
         else:
-            self.type_key = data_type[data_type]
+            self.type_key = data_types[data_type]
 
 
 class Parameter(Datum):
     def __init__(self, namelist):
         self.fields = {'name': '', 'symbol': '', 'units': '', 'description': '',
                        'format_string': '', 'type': '', 'fixed_value': None}
-        super(Datum, self).__init__(namelist)
+        super().__init__(namelist)
+
+        if self.fields['fixed_value'] is not None:
+            self.parse_fixed_value()
+        else:
+            self.set_data_type()
 
     def parse_fixed_value(self):
         fixed_value = self.fields['fixed_value']
@@ -73,7 +88,7 @@ class Parameter(Datum):
                 self.fields['fixed_value'] = float(fixed_value)
             elif data_type in ['string', 'char']:
                 try:
-                    self.fields['fixed_value'] = str(fixed_value).decode('utf-8')
+                    self.fields['fixed_value'] = str(fixed_value).decode('utf-8')  # TODO: Look into this warning
                 except AttributeError:
                     self.fields['fixed_value'] = str(fixed_value)
 
@@ -82,7 +97,8 @@ class Column(Datum):
     def __init__(self, namelist):
         self.fields = {'name': '', 'symbol': '', 'units': '', 'description': '',
                        'format_string': '', 'type': '', 'field_length': 0}
-        super(Datum, self).__init__(namelist)
+        super().__init__(namelist)
+        self.set_data_type()
 
     def set_data_type(self):
         # Override to account for field_length setting
@@ -94,11 +110,17 @@ class Column(Datum):
             else:
                 self.type_key = '{}'.format(abs(field_length)) + data_type[data_type]
         else:
-            self.type_key = data_type[data_type]
+            self.type_key = data_types[data_type]
+
+
+class Data(Datum):
+    def __init__(self, namelist):
+        self.fields = {'mode': 'binary', 'lines_per_row': 1, 'no_row_counts': 0, 'additional_header_lines': 0}
+        super().__init__(namelist)
 
 
 # Available namelists from SDDS standard
-supported_namelists = {'&parameter': Parameter, '&column': Column}
+supported_namelists = {'&parameter': Parameter, '&column': Column, '&data': Data}
 
 
 class readSDDS:
@@ -146,7 +168,7 @@ class readSDDS:
         self.columns = False
 
         # Hold objects for different allowed types
-        self.data = {key: [] for key in supported_namelists}
+        self.data = {key: [] for key in supported_namelists.keys()}
 
         # Read and Parse header to start
         self._read_header()
@@ -162,7 +184,7 @@ class readSDDS:
         # TODO: Need a catch for &include here to at least one level of nesting
         while True:
             namelist = []
-            new_line = _read_line(self.openf)  # Not clear if the restricted st of latin-1 is what we want or not (if we assume just ascii then its fine)
+            new_line = _read_line(self.openf)
             if np.any([nl in new_line for nl in sdds_namelists]):
                 # Log entries that describe data
                 namelist.append(new_line)
@@ -189,6 +211,19 @@ class readSDDS:
         self.header_end_pointer = self.openf.tell()
 
         return self.header
+
+    def _parse_header(self):
+        for namelist in self.header:
+            namelist_type = namelist.split(maxsplit=1)[0]
+            print(repr(namelist))
+            try:
+                namelist_data = supported_namelists[namelist_type](namelist)
+            except KeyError:
+                print(namelist_type, namelist, 'not parsed')  # TEMP
+                continue
+            self.data[namelist_type].append(namelist_data)
+
+        return self.data
 
     def _read_params(self):
         """
