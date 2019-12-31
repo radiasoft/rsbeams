@@ -21,9 +21,18 @@ def _return_type(string):
             return key
     return None
 
+
+def _read_line(open_file):
+    line = ''
+    while line == '\n' or line == '' or line[0] == '!':
+        line = str(open_file.readline(), 'latin-1')
+    return line
+
+
 # Accepted namelists in header. &data is treated as a special case.
 sdds_namelists = ['&column', '&parameter', '&description', '&array', '&include']
 data_types = {'double': 'd', 'short': 'h', 'long': 'l', 'string': 's', 'char': 'c'}
+
 
 class Datum:
     def __init__(self, namelist):
@@ -47,6 +56,7 @@ class Datum:
         else:
             self.type_key = data_type[data_type]
 
+
 class Parameter(Datum):
     def __init__(self, namelist):
         self.fields = {'name': '', 'symbol': '', 'units': '', 'description': '',
@@ -67,6 +77,7 @@ class Parameter(Datum):
                 except AttributeError:
                     self.fields['fixed_value'] = str(fixed_value)
 
+
 class Column(Datum):
     def __init__(self, namelist):
         self.fields = {'name': '', 'symbol': '', 'units': '', 'description': '',
@@ -84,6 +95,7 @@ class Column(Datum):
                 self.type_key = '{}'.format(abs(field_length)) + data_type[data_type]
         else:
             self.type_key = data_type[data_type]
+
 
 # Available namelists from SDDS standard
 supported_namelists = {'&parameter': Parameter, '&column': Column}
@@ -123,7 +135,6 @@ class readSDDS:
         self.column_key = '='
         self.header_end_pointer = 0  #
 
-
         self._parameter_keys = []
         self.param_size = 0
         self.param_names = ['rowCount']
@@ -139,26 +150,27 @@ class readSDDS:
 
         # Read and Parse header to start
         self._read_header()
-        self._parse_header()
+        # self._parse_header() TODO: Implement
 
     def _read_header(self):
         """
         Read in ASCII data of the header to string and organize.
         """
+        if _read_line(self.openf).find('SDDS1') < 0:
+            # First line must identify as SDDS file
+            raise Exception("Header cannot be read")
         # TODO: Need a catch for &include here to at least one level of nesting
         while True:
             namelist = []
-            new_line = str(self.openf.readline(), 'latin-1')  # Not clear if the restricted st of latin-1 is what we want or not (if we assume just ascii then its fine)
-            if new_line[0] == '!':
-                # Skip comments
-                continue
-            elif np.any([nl in new_line for nl in sdds_namelists]):
+            new_line = _read_line(self.openf)  # Not clear if the restricted st of latin-1 is what we want or not (if we assume just ascii then its fine)
+            if np.any([nl in new_line for nl in sdds_namelists]):
                 # Log entries that describe data
                 namelist.append(new_line)
                 while '&end' not in new_line:
+                    # Proceed reading lines until the namelist is entirely read
                     if new_line[0] == '!':
                         continue
-                    new_line = str(self.openf.readline(), 'latin-1')
+                    new_line = _read_line(self.openf)
                     namelist.append(new_line)
                 self.header.append(''.join(namelist))
             elif new_line.find('&data') == 0:
@@ -167,11 +179,11 @@ class readSDDS:
                 while '&end' not in new_line:
                     if new_line[0] == '!':
                         continue
-                    new_line = str(self.openf.readline(), 'latin-1')
+                    new_line = _read_line(self.openf)
                 self.header.append(''.join(namelist))
                 break
             else:
-                raise Exception("Header is corrupted")
+                raise Exception("Header cannot be read")
 
         # Log data start position
         self.header_end_pointer = self.openf.tell()
