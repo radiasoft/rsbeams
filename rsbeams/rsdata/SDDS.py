@@ -10,7 +10,7 @@ from copy import copy
 # TODO: There may be initial nuance with the row count parameter. See no_row_counts in &data command from standard.
 # TODO: Need to support additional_header_lines option (never actually seen this used though)
 
-# TODO: Next construct reader dtype for NumPy from each Datum
+
 def _return_type(string):
     target = 'type='
     type_field_position = string.find(target)
@@ -42,7 +42,7 @@ def _shlex_split(line):
 
 # Accepted namelists in header. &data is treated as a special case.
 sdds_namelists = ['&column', '&parameter', '&description', '&array', '&include']
-data_types = {'double': 'd', 'short': 'h', 'long': 'l', 'string': 's', 'char': 'c'}
+data_types = {'double': np.float64, 'short': np.int32, 'long': np.int64, 'string': 'S{}', 'char': np.char}
 
 
 class Datum:
@@ -61,10 +61,7 @@ class Datum:
 
     def set_data_type(self):
         data_type = self.fields['type']
-        if data_type == 'string':
-            self.type_key = '{}' + data_type[data_type]
-        else:
-            self.type_key = data_types[data_type]
+        self.type_key = data_types[data_type]
 
 
 class Parameter(Datum):
@@ -104,11 +101,10 @@ class Column(Datum):
         # Override to account for field_length setting
         data_type = self.fields['type']
         if data_type == 'string':
-            field_length = self.fields['field_length'] == 0
-            if field_length == 0:
-                self.type_key = '{}' + data_type[data_type]
+            if self.fields['field_length'] == 0:
+                self.type_key = data_types[data_type]
             else:
-                self.type_key = '{}'.format(abs(field_length)) + data_type[data_type]
+                self.type_key = data_types[data_type].format(np.abs(self.fields['field_length']))
         else:
             self.type_key = data_types[data_type]
 
@@ -137,7 +133,7 @@ class readSDDS:
         - Files that store string data in columns are not currently supported
     """
 
-    def __init__(self, input_file, verbose=False):
+    def __init__(self, input_file, verbose=False, max_string_length=100):
         """
         Initialize the read in.
 
@@ -147,11 +143,15 @@ class readSDDS:
             Name of binary SDDS file to read.
         verbose: Boolean
             Print additional data about detailing intermediate read in process.
+        max_string_length: Int
+            Upper bound on strings that can be read in. Only used for formatting read from ASCII files.
         """
 
         self.openf = open(input_file, 'rb')
         self.verbose = verbose
+        self.max_string_length = max_string_length
         self.header = []
+        self._variable_length_records = False
 
         self.param_key = ['=i']  # Include row count with parameters
         self.column_key = '='
@@ -172,7 +172,7 @@ class readSDDS:
 
         # Read and Parse header to start
         self._read_header()
-        # self._parse_header() TODO: Implement
+        self._parse_header()
 
     def _read_header(self):
         """
@@ -213,17 +213,67 @@ class readSDDS:
         return self.header
 
     def _parse_header(self):
+        """
+        Processes raw strings of the header into appropriate Datum structures and then creates datatype lists
+        to be used by NumPy during data read.
+        Returns:
+            self.data holds all Datum objects
+        """
         for namelist in self.header:
             namelist_type = namelist.split(maxsplit=1)[0]
-            print(repr(namelist))
             try:
                 namelist_data = supported_namelists[namelist_type](namelist)
             except KeyError:
-                print(namelist_type, namelist, 'not parsed')  # TEMP
+                print(namelist_type, namelist, 'not parsed')  # TODO: TEMP printout
                 continue
             self.data[namelist_type].append(namelist_data)
 
+        if self.data['&data'][0].fields['mode'] == 'binary':  # TODO: Is there any scenario where this more than one &data field?
+            self.max_string_length = '{}'
+
         return self.data
+
+    def _compose_column_datatypes(self):
+        """
+        Creates lists of data types for all column fields
+        Returns:
+
+        """
+        self._column_keys.append([])
+        for col in self.data['&column']:
+            if col.fields['type'] == 'string':
+                self._column_keys[-1].append(('record_length', np.int32))
+                self._column_keys.append([])
+                self._column_keys[-1].append((col.fields['name'],
+                                              col.type_key.format(self.max_string_length)))
+
+                if col.fields['field_length'] == 0:
+                    self._variable_length_records = True
+            else:
+                self._column_keys[-1].append((col.fields['name'], col.type_key))
+
+        if self.data['&data'][0].fields['mode'] == 'ascii':
+            self._column_keys = [g for f in self._column_keys for g in f]
+
+    def _compose_parameter_datatypes(self):
+        """
+        Creates lists of data types for all parameter fields
+        Returns:
+
+        """
+        self._parameter_keys.append([])
+        for par in self.data['&parameter']:
+            if par.fields['fixed_value'] is None:
+                if par.fields['type'] == 'string':
+                    self._parameter_keys[-1].append(('record_length', np.int32))
+                    self._parameter_keys.append([])
+                    self._parameter_keys[-1].append((par.fields['name'],
+                                                     par.type_key.format(self.max_string_length)))
+                    self._variable_length_records = True
+                else:
+                    self._parameter_keys[-1].append((par.fields['name'], par.type_key))
+
+
 
     def _read_params(self):
         """
