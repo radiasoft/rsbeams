@@ -55,7 +55,7 @@ class Datum:
         namelist = _shlex_split(self.namelist)
         for name in self.fields.keys():
             for entry in namelist:
-                if name in entry:
+                if name in entry[:len(name)]:
                     start = entry.find('=')
                     self.fields[name] = entry[start + 1:].rstrip(',')
 
