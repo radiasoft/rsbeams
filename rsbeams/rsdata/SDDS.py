@@ -40,6 +40,13 @@ def _shlex_split(line):
     return list(lex)
 
 
+def iter_always():
+    i = 0
+    while True:
+        yield i
+        i += 1
+
+
 # Accepted namelists in header. &data is treated as a special case.
 sdds_namelists = ['&column', '&parameter', '&description', '&array', '&include']
 data_types = {'double': np.float64, 'short': np.int32, 'long': np.int64, 'string': 'S{}', 'char': np.char}
@@ -133,7 +140,7 @@ class readSDDS:
         - Files that store string data in columns are not currently supported
     """
 
-    def __init__(self, input_file, verbose=False, max_string_length=100):
+    def __init__(self, input_file, verbose=False, buffer=True, max_string_length=100):
         """
         Initialize the read in.
 
@@ -146,9 +153,16 @@ class readSDDS:
         max_string_length: Int
             Upper bound on strings that can be read in. Only used for formatting read from ASCII files.
         """
-
-        self.openf = open(input_file, 'rb')
+        self._input_file = input_file
         self.verbose = verbose
+        self.buffer = buffer
+        if buffer:
+            openf = open(input_file, 'rb')
+            self.openf = openf.read()
+            openf.close()
+        else:
+            self.openf = open(input_file, 'rb')
+
         self.max_string_length = max_string_length
         self.header = []
         self._variable_length_records = False
@@ -272,6 +286,112 @@ class readSDDS:
                     self._variable_length_records = True
                 else:
                     self._parameter_keys[-1].append((par.fields['name'], par.type_key))
+
+    def _get_reader(self):
+        if self.data['&data'].fields['mode'] == 'ascii':
+            reader = np.genfromtxt
+        else:
+            if self.buffer:
+                reader = np.frombuffer
+            else:
+                reader = np.fromfile
+
+        return reader
+
+    def _get_column_count(self, position):
+        if self.data['&data'].fields['mode'] == 'ascii':
+            count = self._get_reader()(self.openf, skip_header=position, dtype=np.int32, max_rows=1, comments='!')
+        else:
+            count = self._get_reader()(self.openf, offset=position, dtype=np.int32, count=1)[0]
+
+        return count
+
+    def _get_position(self, parameter_size, column_size, page):
+        # TODO: Pages indexed to 0
+        if self.buffer:
+            position = (parameter_size + column_size) * page + self.header_end_pointer + self.position
+        else:
+            # If a file object is being passed to NumPy read tools
+            #  the pointer will just always be right after the last read
+            position = 0
+
+        return position
+
+    def _check_file_end(self, position):
+        if self.buffer:
+            if len(self.openf) == position:
+                return True
+        else:
+            pointer = self.openf.tell()
+            if not self.openf.read(1):
+                return True
+            self.openf.seek(pointer)
+
+        return False
+
+    def read2(self, pages):
+        if pages:
+            user_pages = pages
+        else:
+            user_pages = iter_always()
+        pages = iter_always()
+        parameter_size, column_size = 0, 0  # Total size consumed so far from the file
+        position = self.header_end_pointer
+        # if len(self._column_keys) == 1:
+        #     row_size = np.dtype(self._column_keys[0]).itemsize
+        # else:
+        #     row_size = -1
+        #     # If there are variable records we must read every page, only pages user requests will be stored though
+        #     pages = iter_always()
+        # if len(self._parameter_keys) == 1:
+        #     parameter_size = np.dtype(self._parameter_keys[0]).itemsize
+        # else:
+        #     parameter_size = -1
+        #     # If there are variable records we must read every page, only pages user requests will be stored though
+        #     pages = iter_always()
+
+        for page in pages:
+            # get position of the page start. if page = 1 then don't need par and col sizes anyway
+            # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated
+            # value though. could be iterable.
+            position = self._get_position(parameter_size, column_size, page)
+            if not self.data['&data'].fields['no_row_count']:
+                row_count = self._get_column_count(position)
+            # if self._check_file_end(position):
+            #     # TODO: May not need this if column_count catches file end
+            #     if page in user_pages:
+            #         print('Could not read page {}'.format(page))
+            #     break
+
+            # based on position and data key get the data and update the parameter_size if it was unknown (<0)
+            parameter_data, parameter_size = _get_parameter_data(self._parameter_keys, position)
+            # save data if needed
+            if page in user_pages:
+                self.parameter_data.add(parameter_data)
+            # same but for columns
+            column_data, column_size = _get_column_data(self._column_keys, position + parameter_size, row_count)
+            if page in user_pages:
+                self.column_data.add(column_data)
+            self.position = position
+
+    def _get_parameter_data(self, data_keys, position):
+        data_arrays = []
+        if len(data_keys) > 1:
+            for dk in data_keys:
+                try:
+                    record_length = data_arrays[-1]['record_length']
+                    dk[0] = (dk[0][0], dk[0][1].format(record_length[0]))
+                except (ValueError, IndexError):
+                    pass
+                if self.data['&data'].fields['mode'] == 'ascii':
+                    new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=len(dk),
+                                                   comments='!')
+                else:
+                    new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
+                # print(new_array, new_array.dtype)
+                data_arrays.append(new_array)
+                # TODO: Would it be faster to consume the buffer as we go?
+                position += np.dtype(dt).itemsize
 
 
 
@@ -440,6 +560,7 @@ class readSDDS:
         return parameters, np.asarray(columns)
 
     def close(self):
+        # TODO: If we keep this it means people might want to call read multiple times and then pointer position may need to be reset
         """
         Close opened SDDS file.
         Returns:
