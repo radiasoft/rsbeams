@@ -271,21 +271,21 @@ class readSDDS:
 
     def _compose_parameter_datatypes(self):
         """
-        Creates lists of data types for all parameter fields
+        Creates a list of lists of data types for all parameter fields.
+        Each sublist contains a single parameter for reading.
+        Parameters are composed into a single structured array after the data read.
         Returns:
 
         """
-        self._parameter_keys.append([])
         for par in self.data['&parameter']:
             if par.fields['fixed_value'] is None:
                 if par.fields['type'] == 'string':
-                    self._parameter_keys[-1].append(('record_length', np.int32))
-                    self._parameter_keys.append([])
-                    self._parameter_keys[-1].append((par.fields['name'],
-                                                     par.type_key.format(self.max_string_length)))
+                    self._parameter_keys.append([('record_length', np.int32)])
+                    self._parameter_keys.append([(par.fields['name'],
+                                                     par.type_key.format(self.max_string_length))])
                     self._variable_length_records = True
                 else:
-                    self._parameter_keys[-1].append((par.fields['name'], par.type_key))
+                    self._parameter_keys.append([(par.fields['name'], par.type_key)])
 
     def _get_reader(self):
         if self.data['&data'].fields['mode'] == 'ascii':
