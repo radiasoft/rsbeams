@@ -219,6 +219,56 @@ class TestParameterCompose(unittest.TestCase):
         os.remove('header2.sdds')
         os.remove('header3.sdds')
         os.remove('header4.sdds')
+
+
+class TestFirstPageParameterRead(unittest.TestCase):
+    # Just a test of a single `_get_parameter_data` call
+    # Does not test multipage or position calculation dependent read to avoid
+    # Additional dependencies
+
+    def test1(self):
+        filename = 'file1.sdds'
+        reader = readSDDS(filename, buffer=False)
+        reader._compose_parameter_datatypes()
+
+        # Perform set from `read`
+
+        position = 0
+        arr, pos = reader._get_parameter_data(reader._parameter_keys, position)
+        print(arr)
+
+    def test2(self):
+        filename = 'PClinac_TESSA.fin'
+        use_buffer = False
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader._compose_parameter_datatypes()
+        print(reader.header_end_pointer)
+        # Perform set from `read`
+        if use_buffer:
+            position = reader.header_end_pointer
+        else:
+            position = 0
+        print(position)
+        arr, pos = reader._get_parameter_data(reader._parameter_keys, position)
+        print(arr)
+
+    def test3(self):
+        filename = 'PClinac_TESSA.fin'
+        use_buffer = True
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader._compose_parameter_datatypes()
+        print(reader.header_end_pointer)
+        # Perform set from `read`
+        if use_buffer:
+            position = reader.header_end_pointer
+        else:
+            position = 0
+        print(position)
+        arr, pos = reader._get_parameter_data(reader._parameter_keys, position)
+        print(arr)
+
+
+
 # class TestReadBinary1(unittest.TestCase):
 #     filename = 'test_read_1_bunch.out'
 #

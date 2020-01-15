@@ -1,7 +1,7 @@
 pykern
 seaborn
 pathos
-numpy
+numpy>=1.17
 scipy
 sympy>=1.2
 ruamel.yaml
