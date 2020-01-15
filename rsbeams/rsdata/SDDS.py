@@ -9,7 +9,7 @@ from copy import copy
 # TODO: Add multipage write support - mostly means defining how they are input
 # TODO: There may be initial nuance with the row count parameter. See no_row_counts in &data command from standard.
 # TODO: Need to support additional_header_lines option (never actually seen this used though)
-
+# TODO: Start placing the _data_mode shortcut attribute in and testing
 
 def _return_type(string):
     target = 'type='
@@ -49,7 +49,10 @@ def iter_always():
 
 # Accepted namelists in header. &data is treated as a special case.
 sdds_namelists = ['&column', '&parameter', '&description', '&array', '&include']
-data_types = {'double': np.float64, 'short': np.int32, 'long': np.int64, 'string': 'S{}', 'char': np.char}
+# TODO: Find sdds use case with 'short' type
+# SDDS defaults to 32 bit unsigned longs on all test systems while numpy uses 64 bits for the np.int_ in test cases
+#  therefore int datatypes are hardcoded in size
+data_types = {'double': np.float64, 'short': np.int16, 'long': np.int32, 'string': 'S{}', 'char': np.char}
 
 
 class Datum:
@@ -150,22 +153,23 @@ class readSDDS:
             Name of binary SDDS file to read.
         verbose: Boolean
             Print additional data about detailing intermediate read in process.
+        buffer: Boolean
+            If true then the file is entered into memory and closed before data is read. This may result in faster
+            read times in some cases but only if the file is not on the order of available system memory.
         max_string_length: Int
-            Upper bound on strings that can be read in. Only used for formatting read from ASCII files.
+            Upper bound on strings that can be read in. Should be at least as large as the biggest string in the file.
+            Only used for formatting read from ASCII files. For binary files the string size is determined dynamically
+            during the file read.
         """
         self._input_file = input_file
         self.verbose = verbose
         self.buffer = buffer
-        if buffer:
-            openf = open(input_file, 'rb')
-            self.openf = openf.read()
-            openf.close()
-        else:
-            self.openf = open(input_file, 'rb')
+        self.openf = open(input_file, 'rb')
 
         self.max_string_length = max_string_length
         self.header = []
         self._variable_length_records = False
+        self._data_mode = None
 
         self.param_key = ['=i']  # Include row count with parameters
         self.column_key = '='
@@ -186,6 +190,11 @@ class readSDDS:
 
         # Read and Parse header to start
         self._read_header()
+        if buffer:
+            self.openf.seek(0)
+            buffer = self.openf.read()
+            self.openf.close()
+            self.openf = buffer
         self._parse_header()
 
     def _read_header(self):
@@ -242,7 +251,13 @@ class readSDDS:
                 continue
             self.data[namelist_type].append(namelist_data)
 
-        if self.data['&data'][0].fields['mode'] == 'binary':  # TODO: Is there any scenario where this more than one &data field?
+        if self.data['&data'][0].fields['mode'] == 'ascii':
+            self._data_mode = 'ascii'
+        else:
+            self._data_mode = 'binary'
+
+        if self._data_mode == 'binary':
+            # If binary the exact string lengths will be found dynamically and inserted here
             self.max_string_length = '{}'
 
         return self.data
@@ -287,8 +302,15 @@ class readSDDS:
                 else:
                     self._parameter_keys.append([(par.fields['name'], par.type_key)])
 
+        if self._data_mode == 'binary':
+            # Binary always has count and it is before listed parameters start
+            self._parameter_keys.insert(0, [('row_counts', data_types['long'])])
+        elif not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
+            # ASCII: count may not be included and will be at the end of the parameters
+            self._parameter_keys.append([('row_counts', data_types['long'])])
+
     def _get_reader(self):
-        if self.data['&data'].fields['mode'] == 'ascii':
+        if self._data_mode == 'ascii':
             reader = np.genfromtxt
         else:
             if self.buffer:
@@ -299,7 +321,7 @@ class readSDDS:
         return reader
 
     def _get_column_count(self, position):
-        if self.data['&data'].fields['mode'] == 'ascii':
+        if self.data['&data'][0].fields['mode'] == 'ascii':
             count = self._get_reader()(self.openf, skip_header=position, dtype=np.int32, max_rows=1, comments='!')
         else:
             count = self._get_reader()(self.openf, offset=position, dtype=np.int32, count=1)[0]
@@ -336,7 +358,7 @@ class readSDDS:
             user_pages = iter_always()
         pages = iter_always()
         parameter_size, column_size = 0, 0  # Total size consumed so far from the file
-        position = self.header_end_pointer
+        position = self.header_end_pointer  # TODO: Is this needed?
         # if len(self._column_keys) == 1:
         #     row_size = np.dtype(self._column_keys[0]).itemsize
         # else:
@@ -364,35 +386,47 @@ class readSDDS:
             #     break
 
             # based on position and data key get the data and update the parameter_size if it was unknown (<0)
-            parameter_data, parameter_size = _get_parameter_data(self._parameter_keys, position)
+            parameter_data, position = self._get_parameter_data(self._parameter_keys, position)
             # save data if needed
             if page in user_pages:
                 self.parameter_data.add(parameter_data)
             # same but for columns
-            column_data, column_size = _get_column_data(self._column_keys, position + parameter_size, row_count)
+            column_data, position = _get_column_data(self._column_keys, position, row_count)
             if page in user_pages:
                 self.column_data.add(column_data)
             self.position = position
 
     def _get_parameter_data(self, data_keys, position):
         data_arrays = []
-        if len(data_keys) > 1:
-            for dk in data_keys:
+
+        for dk in data_keys:
+            if self._variable_length_records:
                 try:
                     record_length = data_arrays[-1]['record_length']
-                    dk[0] = (dk[0][0], dk[0][1].format(record_length[0]))
+                    dk = (dk[0][0], dk[0][1].format(record_length[0]))
                 except (ValueError, IndexError):
                     pass
-                if self.data['&data'].fields['mode'] == 'ascii':
-                    new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=len(dk),
-                                                   comments='!')
-                else:
-                    new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
-                # print(new_array, new_array.dtype)
-                data_arrays.append(new_array)
-                # TODO: Would it be faster to consume the buffer as we go?
-                position += np.dtype(dt).itemsize
+            if self.data['&data'][0].fields['mode'] == 'ascii':
+                new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
+                                               comments='!')
+                if self.buffer:
+                    position += 1
+            else:
+                new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
+                if self.buffer:
+                    position += np.dtype(dk).itemsize
+            # print(new_array, new_array.dtype)
+            data_arrays.append(new_array)
 
+        return data_arrays, position
+
+    def _get_column_data(self, data_keys, position):
+        # TODO: Account for now_row_count possibility
+        data_arrays = []
+
+        if len(data_keys) > 1:
+            for dk in data_keys:
+                pass
 
 
     def _read_params(self):
