@@ -268,6 +268,26 @@ class TestFirstPageParameterRead(unittest.TestCase):
         print(arr)
 
 
+class TestParameterRead(unittest.TestCase):
+    # Just a test of a single `_get_parameter_data` call
+    # Does not test multipage or position calculation dependent read to avoid
+    # Additional dependencies
+
+    def test1(self):
+        filename = 'elegant_final.fin'
+        use_buffer = False
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2()
+        print(reader.parameters)
+
+    def test2(self):
+        filename = 'elegant_final_ascii.fin'
+        use_buffer = False
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2()
+
+
+
 
 # class TestReadBinary1(unittest.TestCase):
 #     filename = 'test_read_1_bunch.out'

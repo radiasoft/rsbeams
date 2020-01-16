@@ -4,6 +4,7 @@ import shlex
 from struct import pack, unpack, calcsize, error
 from sys import byteorder
 from copy import copy
+from types import GeneratorType
 # TODO: Will probably need a new dict object that uses ordered Dict for py2 and userdict or standard dict for py3
 # TODO: Would be nice to refactor the old camel case convention variables
 # TODO: Add multipage write support - mostly means defining how they are input
@@ -48,7 +49,8 @@ def iter_always():
 
 
 # Accepted namelists in header. &data is treated as a special case.
-sdds_namelists = ['&column', '&parameter', '&description', '&array', '&include']
+# Types with data outside the header should be appended to the end of the list for _initialize_data_arrays
+sdds_namelists = ['&description', '&include', '&column', '&parameter', '&array']
 # TODO: Find sdds use case with 'short' type
 # SDDS defaults to 32 bit unsigned longs on all test systems while numpy uses 64 bits for the np.int_ in test cases
 #  therefore int datatypes are hardcoded in size
@@ -119,14 +121,62 @@ class Column(Datum):
             self.type_key = data_types[data_type]
 
 
+class Array(Datum):
+    def __init__(self, namelist):
+        super().__init__(namelist)
+
+
 class Data(Datum):
     def __init__(self, namelist):
         self.fields = {'mode': 'binary', 'lines_per_row': 1, 'no_row_counts': 0, 'additional_header_lines': 0}
         super().__init__(namelist)
 
 
+class StructData:
+    def __init__(self, data_type):
+        self.data = None
+        self.data_type = data_type
+
+    @property
+    def data_type(self):
+        return self._data_type
+
+    @data_type.setter
+    def data_type(self, data_type):
+        if type(data_type[0]) == list:
+            self._data_type = [a[0] for a in data_type]
+        else:
+            self._data_type = data_type
+
+    def add(self, data):
+        data = self._merge(data)
+        self._check_type(data)
+        if self.data is None:
+            self.data = data
+        else:
+            self.data = np.concatenate([self.data, data])
+
+    def _merge(self, data):
+        if type(data) == np.ndarray:
+            return data
+        else:
+            new_array = np.empty(1, dtype=sum((a.dtype.descr for a in data), []))
+            for arr in data:
+                new_array[arr.dtype.names[0]] = arr[arr.dtype.names[0]]
+            return new_array
+
+    def _check_type(self, data):
+        if data.dtype != np.dtype(self.data_type):
+            raise TypeError("Array Datatypes do not match")
+
+    def clean_record_lengths(self):
+        return
+
+
+
+
 # Available namelists from SDDS standard
-supported_namelists = {'&parameter': Parameter, '&column': Column, '&data': Data}
+supported_namelists = {'&parameter': Parameter, '&column': Column, '&data': Data, '&array': Array}
 
 
 class readSDDS:
@@ -161,6 +211,7 @@ class readSDDS:
             Only used for formatting read from ASCII files. For binary files the string size is determined dynamically
             during the file read.
         """
+        # TODO: Clean up unused attributes at the end
         self._input_file = input_file
         self.verbose = verbose
         self.buffer = buffer
@@ -178,12 +229,16 @@ class readSDDS:
         self._parameter_keys = []
         self.param_size = 0
         self.param_names = ['rowCount']
-        self.parameters = {}
+        self.parameters = None
 
         self._column_keys = []
         self.column_size = 0
         self.column_names = {}
-        self.columns = False
+        self.columns = None
+
+        self._array_keys = []
+        self.array_size = 0
+        self.arrays = None
 
         # Hold objects for different allowed types
         self.data = {key: [] for key in supported_namelists.keys()}
@@ -196,6 +251,15 @@ class readSDDS:
             self.openf.close()
             self.openf = buffer
         self._parse_header()
+        self._initialize_data_arrays()
+
+    @property
+    def parameters(self):
+        return self._parameters.data
+
+    @parameters.setter
+    def parameters(self, parameters):
+        self._parameters = parameters
 
     def _read_header(self):
         """
@@ -262,6 +326,15 @@ class readSDDS:
 
         return self.data
 
+    def _initialize_data_arrays(self):
+
+        for name in sdds_namelists[2:]:
+            if len(self.data[name]) > 0:
+                getattr(self, '_compose_'+name[1:]+'_datatypes')()
+                print('setting', name[1:]+'s' )
+                setattr(self, name[1:]+'s', StructData(getattr(self, '_'+name[1:]+'_keys')))
+                print('strdt', self._parameters.data_type)
+
     def _compose_column_datatypes(self):
         """
         Creates lists of data types for all column fields
@@ -271,13 +344,13 @@ class readSDDS:
         self._column_keys.append([])
         for col in self.data['&column']:
             if col.fields['type'] == 'string':
-                self._column_keys[-1].append(('record_length', np.int32))
-                self._column_keys.append([])
+                if self._data_mode == 'binary':
+                    self._column_keys[-1].append(('record_length', np.int32))
+                    self._column_keys.append([])
+                    if col.fields['field_length'] == 0:
+                        self._variable_length_records = True
                 self._column_keys[-1].append((col.fields['name'],
                                               col.type_key.format(self.max_string_length)))
-
-                if col.fields['field_length'] == 0:
-                    self._variable_length_records = True
             else:
                 self._column_keys[-1].append((col.fields['name'], col.type_key))
 
@@ -295,10 +368,11 @@ class readSDDS:
         for par in self.data['&parameter']:
             if par.fields['fixed_value'] is None:
                 if par.fields['type'] == 'string':
-                    self._parameter_keys.append([('record_length', np.int32)])
+                    if self._data_mode == 'binary':
+                        self._parameter_keys.append([('record_length', np.int32)])
+                        self._variable_length_records = True
                     self._parameter_keys.append([(par.fields['name'],
                                                      par.type_key.format(self.max_string_length))])
-                    self._variable_length_records = True
                 else:
                     self._parameter_keys.append([(par.fields['name'], par.type_key)])
 
@@ -308,6 +382,8 @@ class readSDDS:
         elif not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
             # ASCII: count may not be included and will be at the end of the parameters
             self._parameter_keys.append([('row_counts', data_types['long'])])
+
+        print('pardt', self._parameter_keys)
 
     def _get_reader(self):
         if self._data_mode == 'ascii':
@@ -351,7 +427,7 @@ class readSDDS:
 
         return False
 
-    def read2(self, pages):
+    def read2(self, pages=None):
         if pages:
             user_pages = pages
         else:
@@ -371,29 +447,34 @@ class readSDDS:
         #     parameter_size = -1
         #     # If there are variable records we must read every page, only pages user requests will be stored though
         #     pages = iter_always()
-
         for page in pages:
+            print('page number {}'.format(page))
             # get position of the page start. if page = 1 then don't need par and col sizes anyway
             # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated
             # value though. could be iterable.
             position = self._get_position(parameter_size, column_size, page)
-            if not self.data['&data'].fields['no_row_count']:
-                row_count = self._get_column_count(position)
-            # if self._check_file_end(position):
-            #     # TODO: May not need this if column_count catches file end
-            #     if page in user_pages:
-            #         print('Could not read page {}'.format(page))
-            #     break
-
+            print('position {}'.format(position))
+            # if not self.data['&data'].fields['no_row_count']:
+            #     row_count = self._get_column_count(position)
+            if self._check_file_end(position):
+                # TODO: Get the logic right here. Should not trigger unless user requests a bad page.
+                if page in user_pages or not isinstance(user_pages, GeneratorType):
+                    print('Could not read page {}'.format(page))
+                break
             # based on position and data key get the data and update the parameter_size if it was unknown (<0)
             parameter_data, position = self._get_parameter_data(self._parameter_keys, position)
+            print('data: {}'.format(parameter_data))
+
             # save data if needed
             if page in user_pages:
-                self.parameter_data.add(parameter_data)
-            # same but for columns
-            column_data, position = _get_column_data(self._column_keys, position, row_count)
-            if page in user_pages:
-                self.column_data.add(column_data)
+                self._parameters.add(parameter_data)
+
+
+            # # same but for columns
+            # column_data, position = _get_column_data(self._column_keys, position, row_count)
+            # if page in user_pages:
+            #     self._columns.add(column_data)
+
             self.position = position
 
     def _get_parameter_data(self, data_keys, position):
@@ -408,7 +489,7 @@ class readSDDS:
                     pass
             if self.data['&data'][0].fields['mode'] == 'ascii':
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
-                                               comments='!')
+                                               comments='!', deletechars='')
                 if self.buffer:
                     position += 1
             else:
