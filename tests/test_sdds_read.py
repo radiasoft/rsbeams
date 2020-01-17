@@ -69,6 +69,7 @@ class TestHeaderParse(unittest.TestCase):
         reader = object.__new__(readSDDS)
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []
+        reader.buffer = False
         with open('header1.sdds', 'r') as f1:
             f1.readline()
             for file_line in f1.readlines()[2:]:
@@ -85,6 +86,7 @@ class TestHeaderParse(unittest.TestCase):
         reader = object.__new__(readSDDS)
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []
+        reader.buffer = False
         with open('header2.sdds', 'r') as f2:
             f2.readline()
             for file_line in f2.readlines()[2:]:
@@ -101,6 +103,7 @@ class TestHeaderParse(unittest.TestCase):
         reader = object.__new__(readSDDS)
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []
+        reader.buffer = False
         with open('header4.sdds', 'r') as f4:
             f4.readline()
             for file_line in f4.readlines()[2:]:
@@ -140,6 +143,7 @@ class TestColumnCompose(unittest.TestCase):
         reader.header = []
         reader._parameter_keys = []
         reader._column_keys = []
+        reader.buffer = False
         reader._read_header()
         reader._parse_header()
 
@@ -188,6 +192,7 @@ class TestParameterCompose(unittest.TestCase):
         reader.openf = open('header1.sdds', 'rb')
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []
+        reader.buffer = False
         reader._parameter_keys = []
         reader._column_keys = []
         reader._read_header()
@@ -285,6 +290,27 @@ class TestParameterRead(unittest.TestCase):
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read2()
+
+    def test3(self):
+        filename = 'elegant_final.fin'
+        use_buffer = False
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2(pages=[5, 10])
+        print(reader.parameters)
+
+    def test4(self):
+        filename = 'elegant_final.fin'
+        use_buffer = True
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2()
+        print(reader.parameters)
+
+    def test5(self):
+        filename = 'elegant_final_ascii.fin'
+        use_buffer = True
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2()
+        print(reader.parameters)
 
 
 

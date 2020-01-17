@@ -216,6 +216,7 @@ class readSDDS:
         self.verbose = verbose
         self.buffer = buffer
         self.openf = open(input_file, 'rb')
+        self.position = 0
 
         self.max_string_length = max_string_length
         self.header = []
@@ -225,6 +226,7 @@ class readSDDS:
         self.param_key = ['=i']  # Include row count with parameters
         self.column_key = '='
         self.header_end_pointer = 0  #
+        self._header_line_count = 1
 
         self._parameter_keys = []
         self.param_size = 0
@@ -269,9 +271,11 @@ class readSDDS:
             # First line must identify as SDDS file
             raise Exception("Header cannot be read")
         # TODO: Need a catch for &include here to at least one level of nesting
+        self._header_line_count = 1
         while True:
             namelist = []
             new_line = _read_line(self.openf)
+            self._header_line_count += 1
             if np.any([nl in new_line for nl in sdds_namelists]):
                 # Log entries that describe data
                 namelist.append(new_line)
@@ -294,7 +298,7 @@ class readSDDS:
             else:
                 raise Exception("Header cannot be read")
 
-        # Log data start position
+        # Log data start pointer - will be adjusted to line number, if needed, after parsing
         self.header_end_pointer = self.openf.tell()
 
         return self.header
@@ -317,21 +321,23 @@ class readSDDS:
 
         if self.data['&data'][0].fields['mode'] == 'ascii':
             self._data_mode = 'ascii'
+            # need list of lines to use genfromtxt
+            if self.buffer:
+                self.openf = [line for line in self.openf.splitlines() if line.lstrip().find(b'!') != 0]
         else:
             self._data_mode = 'binary'
-
-        if self._data_mode == 'binary':
             # If binary the exact string lengths will be found dynamically and inserted here
             self.max_string_length = '{}'
 
         return self.data
 
     def _initialize_data_arrays(self):
-
+        # TODO: the row count will must always be created in binary mode, even if there are no other parameters
         for name in sdds_namelists[2:]:
             if len(self.data[name]) > 0:
                 getattr(self, '_compose_'+name[1:]+'_datatypes')()
                 print('setting', name[1:]+'s' )
+                print(self._column_keys)
                 setattr(self, name[1:]+'s', StructData(getattr(self, '_'+name[1:]+'_keys')))
                 print('strdt', self._parameters.data_type)
 
@@ -428,31 +434,25 @@ class readSDDS:
         return False
 
     def read2(self, pages=None):
+        # Always start after the header
+        if not self.buffer:
+            self.openf.seek(self.header_end_pointer)
+        # Select pages to be stored during the read - if None then store everything
         if pages:
             user_pages = pages
         else:
             user_pages = iter_always()
         pages = iter_always()
-        parameter_size, column_size = 0, 0  # Total size consumed so far from the file
-        position = self.header_end_pointer  # TODO: Is this needed?
-        # if len(self._column_keys) == 1:
-        #     row_size = np.dtype(self._column_keys[0]).itemsize
-        # else:
-        #     row_size = -1
-        #     # If there are variable records we must read every page, only pages user requests will be stored though
-        #     pages = iter_always()
-        # if len(self._parameter_keys) == 1:
-        #     parameter_size = np.dtype(self._parameter_keys[0]).itemsize
-        # else:
-        #     parameter_size = -1
-        #     # If there are variable records we must read every page, only pages user requests will be stored though
-        #     pages = iter_always()
+        # Buffer reading has no pointer, you always start at the beginning so we need to move the start offset
+        if self._data_mode == 'binary':
+            position = 0 + self.header_end_pointer * self.buffer
+        else:
+            position = 0 + self._header_line_count * self.buffer
         for page in pages:
             print('page number {}'.format(page))
             # get position of the page start. if page = 1 then don't need par and col sizes anyway
             # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated
             # value though. could be iterable.
-            position = self._get_position(parameter_size, column_size, page)
             print('position {}'.format(position))
             # if not self.data['&data'].fields['no_row_count']:
             #     row_count = self._get_column_count(position)
@@ -463,19 +463,22 @@ class readSDDS:
                 break
             # based on position and data key get the data and update the parameter_size if it was unknown (<0)
             parameter_data, position = self._get_parameter_data(self._parameter_keys, position)
+            print('After read position: {}'.format(position))
             print('data: {}'.format(parameter_data))
-
             # save data if needed
             if page in user_pages:
                 self._parameters.add(parameter_data)
+            if not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
+                row_count = self.parameters['row_counts']
 
+            # same but for columns
+            # if page in pages or self._variable_length_records:
+                # column_data, position = _get_column_data(self._column_keys, position, row_count)
+                # if page in user_pages:
+                #     self._columns.add(column_data)
 
-            # # same but for columns
-            # column_data, position = _get_column_data(self._column_keys, position, row_count)
-            # if page in user_pages:
-            #     self._columns.add(column_data)
-
-            self.position = position
+            # position = self._get_position(parameter_size, column_size, page)
+            # self.position = position
 
     def _get_parameter_data(self, data_keys, position):
         data_arrays = []
