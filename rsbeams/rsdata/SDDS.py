@@ -11,6 +11,8 @@ from types import GeneratorType
 # TODO: There may be initial nuance with the row count parameter. See no_row_counts in &data command from standard.
 # TODO: Need to support additional_header_lines option (never actually seen this used though)
 # TODO: Start placing the _data_mode shortcut attribute in and testing
+# TODO: Will need to test buffer read after full implementation. looks like my first tests may have led me astray.
+#      multipage ascii parameter read is much slower. probably due to the need to catch comments during buffer creation
 
 def _return_type(string):
     target = 'type='
@@ -144,7 +146,7 @@ class StructData:
     @data_type.setter
     def data_type(self, data_type):
         if type(data_type[0]) == list:
-            self._data_type = [a[0] for a in data_type]
+            self._data_type = [b for a in data_type for b in a]
         else:
             self._data_type = data_type
 
@@ -157,8 +159,8 @@ class StructData:
             self.data = np.concatenate([self.data, data])
 
     def _merge(self, data):
-        if type(data) == np.ndarray:
-            return data
+        if len(data) == 1:
+            return data[0]
         else:
             new_array = np.empty(1, dtype=sum((a.dtype.descr for a in data), []))
             for arr in data:
@@ -263,6 +265,22 @@ class readSDDS:
     def parameters(self, parameters):
         self._parameters = parameters
 
+    @property
+    def columns(self):
+        return self._columns.data
+
+    @columns.setter
+    def columns(self, columns):
+        self._columns = columns
+
+    @property
+    def arrays(self):
+        return self._arrays.data
+
+    @arrays.setter
+    def arrays(self, arrays):
+        self._arrays = arrays
+
     def _read_header(self):
         """
         Read in ASCII data of the header to string and organize.
@@ -334,12 +352,12 @@ class readSDDS:
     def _initialize_data_arrays(self):
         # TODO: the row count will must always be created in binary mode, even if there are no other parameters
         for name in sdds_namelists[2:]:
-            if len(self.data[name]) > 0:
-                getattr(self, '_compose_'+name[1:]+'_datatypes')()
-                print('setting', name[1:]+'s' )
-                print(self._column_keys)
+            getattr(self, '_compose_'+name[1:]+'_datatypes')()
+            if len(getattr(self, '_'+name[1:]+'_keys')) > 0:
                 setattr(self, name[1:]+'s', StructData(getattr(self, '_'+name[1:]+'_keys')))
-                print('strdt', self._parameters.data_type)
+
+    def _compose_array_datatypes(self):
+        pass
 
     def _compose_column_datatypes(self):
         """
@@ -359,7 +377,10 @@ class readSDDS:
                                               col.type_key.format(self.max_string_length)))
             else:
                 self._column_keys[-1].append((col.fields['name'], col.type_key))
-
+        if len(self._column_keys[0]) == 0:
+            # Need empty checks to succeed
+            self._column_keys.pop(0)
+            return
         if self.data['&data'][0].fields['mode'] == 'ascii':
             self._column_keys = [g for f in self._column_keys for g in f]
 
@@ -388,6 +409,11 @@ class readSDDS:
         elif not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
             # ASCII: count may not be included and will be at the end of the parameters
             self._parameter_keys.append([('row_counts', data_types['long'])])
+        else:
+            print('HDHSH')
+            if len(self._parameter_keys[0]) == 0:
+                # Need empty checks to succeed
+                self._parameter_keys.pop(0)
 
         print('pardt', self._parameter_keys)
 
@@ -466,23 +492,35 @@ class readSDDS:
             print('After read position: {}'.format(position))
             print('data: {}'.format(parameter_data))
             # save data if needed
-            if page in user_pages:
+            if page in user_pages and parameter_data:
                 self._parameters.add(parameter_data)
-            if not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
-                row_count = self.parameters['row_counts']
 
+            if len(self.data['&column']) == 0:
+                row_count = 0
+            elif not self.data['&data'][0].fields['no_row_counts']:
+                row_count = self.parameters['row_counts'][0]
+            else:
+                row_count = None  # TODO add in the mechanism to catch the end of the column data
+            # if not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
+            #     row_count = self.parameters['row_counts']
+            print(self._parameter_keys)
+            print(self._column_keys)
             # same but for columns
-            # if page in pages or self._variable_length_records:
-                # column_data, position = _get_column_data(self._column_keys, position, row_count)
-                # if page in user_pages:
-                #     self._columns.add(column_data)
+            if row_count is 0:
+                continue
+            if page in user_pages or self._variable_length_records:
+                print('poad', position)
+                column_data, position = self._get_column_data(self._column_keys, position, row_count)
+                if page in user_pages:
+                    self._columns.add(column_data)
+            # TODO if not in user_pages or variable record then need to move the position appropriately
 
             # position = self._get_position(parameter_size, column_size, page)
             # self.position = position
 
     def _get_parameter_data(self, data_keys, position):
         data_arrays = []
-
+        # TODO: The variable record lengths portion has not actually been tested yet
         for dk in data_keys:
             if self._variable_length_records:
                 try:
@@ -492,7 +530,7 @@ class readSDDS:
                     pass
             if self.data['&data'][0].fields['mode'] == 'ascii':
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
-                                               comments='!', deletechars='')
+                                               comments='!', deletechars='', unpack=True)
                 if self.buffer:
                     position += 1
             else:
@@ -504,14 +542,44 @@ class readSDDS:
 
         return data_arrays, position
 
-    def _get_column_data(self, data_keys, position):
+    def _get_column_data(self, data_keys, position, row_count):
         # TODO: Account for now_row_count possibility
         data_arrays = []
-
+        # Hand variable record length read by iterating through rows
         if len(data_keys) > 1:
             for dk in data_keys:
-                pass
+                if self._variable_length_records:
+                    try:
+                        record_length = data_arrays[-1]['record_length']
+                        dk = (dk[0][0], dk[0][1].format(record_length[0]))
+                    except (ValueError, IndexError):
+                        pass
+                if self.data['&data'][0].fields['mode'] == 'ascii':
+                    new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
+                                                   comments='!', deletechars='')
+                    if self.buffer:
+                        position += 1
+                else:
+                    new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
+                    if self.buffer:
+                        position += np.dtype(dk).itemsize
+                data_arrays.append(new_array)
+        else:
+            # If no variable records all rows can be read at once
+            dk = data_keys[0]
+            if self.data['&data'][0].fields['mode'] == 'ascii':
+                new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=row_count,
+                                               comments='!', deletechars='')
+                if self.buffer:
+                    position += 1 * row_count
+            else:
+                print('should show')
+                new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
+                if self.buffer:
+                    position += np.dtype(dk).itemsize * row_count
+            data_arrays.append(new_array)
 
+        return data_arrays, position
 
     def _read_params(self):
         """

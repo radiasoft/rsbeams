@@ -234,10 +234,7 @@ class TestFirstPageParameterRead(unittest.TestCase):
     def test1(self):
         filename = 'file1.sdds'
         reader = readSDDS(filename, buffer=False)
-        reader._compose_parameter_datatypes()
-
         # Perform set from `read`
-
         position = 0
         arr, pos = reader._get_parameter_data(reader._parameter_keys, position)
         print(arr)
@@ -313,6 +310,21 @@ class TestParameterRead(unittest.TestCase):
         print(reader.parameters)
 
 
+class TestColumnRead(unittest.TestCase):
+
+    def test1(self):
+        filename = 'linear_dipole_20_nopar_nostr.sig'
+        use_buffer = True
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2(pages=[0])
+        print(reader.columns)
+
+    def test2(self):
+        filename = 'linear_dipole_20_nopar.sig'
+        use_buffer = True
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2(pages=[0])
+        print(reader.columns)
 
 
 # class TestReadBinary1(unittest.TestCase):
