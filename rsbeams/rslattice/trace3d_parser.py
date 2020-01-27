@@ -1,5 +1,6 @@
 from .Beamline import StructuredBeamline
 import numpy as np
+from scipy.constants import c
 from re import findall
 
 # lengths: mm
@@ -22,6 +23,7 @@ class BeamlineParser(object):
         self.beamline_string = ''
         self.lines = {}
         self.rpn_variables = {}
+        self.global_parameters = {}
 
         self.comment_character = '!'
 
@@ -191,7 +193,7 @@ class Trace3d(BeamlineParser):
             parameters = self.get_element_parameters(line, type)
             self._convert_units(parameters)
             try:
-                self.handlers[self.classifiers[type]](name, parameters, self.beamline)
+                self.handlers[type](name, parameters, self.beamline)
             except KeyError:
                 self.beamline.add_element(str(name), self.classifiers[type], parameters)
             self._standardize()  # TODO: Change this to handler
@@ -233,16 +235,24 @@ class Trace3d(BeamlineParser):
 
 class TraceWin(Trace3d):
     elements = {
-        'drift': ['L'],
-        'quadrupole': ['K1', 'L', 'DX', 'DY', 'OF'],
+        'drift': ['L', 'R', 'Ry', 'RX_SHIFT', 'RY_SHIFT'],
+        'quadrupole': ['L', 'K1', 'R', 'THETA', 'G3U3', 'G4U4', 'G5U5', 'G6U6', 'GFR'],
         'sbend': ['ANGLE', 'R', 'INDEX', 'VF'],
-        'dtl_cell': ['L', 'LQ1', 'LQ2', 'GC', 'B1', 'B2', 'VOLT', 'PHASE', 'R', 'P', 'BETA_S', 'T_S', 'KTS', 'K2TS']
+        'dtl_cell': ['L', 'LQ1', 'LQ2', 'GC', 'B1', 'B2', 'VOLT', 'PHASE', 'R', 'P', 'BETA_S', 'T_S', 'KTS', 'K2TS'],
+        'marker': [],
+        'rfca': ['MODE', 'N', 'BETA', 'VOLT', 'PHASE', 'R', 'P', 'KE0TI', 'KE0TO', 'DZI', 'DZO'],
+        'freq': ['FREQUENCY', ],
+        'field_map': ['TYPE', 'L', 'PHASE', 'R', 'KB', 'KE', 'KI', 'KA', 'FILE']
     }
 
     classifiers = {
         'drift': 'drift',
         'quad': 'quadrupole',
-        'dtl_cel': 'dtl_cell'
+        'dtl_cel': 'dtl_cell',
+        'ncells': 'rfca',
+        'set_sync_phase': 'marker',
+        'freq': 'freq',
+        'field_map': 'field_map'  # This is really dependent on field_map settings
     }
 
     conversions = {
@@ -255,25 +265,61 @@ class TraceWin(Trace3d):
         # cavities
         'LQ1': 1e-3,
         'LQ2': 1e-3,
+        'frequency': 1e6
     }
 
-    @staticmethod
-    def handle_dtl_cell(name, cell, beamline):
-        q1_L = cell['LQ1']
-        q2_L = cell['LQ2']
-        cavity_L = cell['L'] - q1_L - q2_L
+    def handle_dtl_cell(self, name, element, beamline):
+        q1_L = element['LQ1']
+        q2_L = element['LQ2']
+        cavity_L = element['L'] - q1_L - q2_L
 
-        q1_K1 = cell['B1']
-        q2_K1 = cell['B2']
+        q1_K1 = element['B1']
+        q2_K1 = element['B2']
 
-        cavity_PHASE = cell['PHASE'] + 90.
+        cavity_PHASE = element['PHASE'] + 90.
 
         beamline.add_element(name + '_q1', 'quadrupole', {'k1': q1_K1, 'l': q1_L})
-        beamline.add_element(name + 'cav', 'rfca', {'l': cavity_L, 'volt': cell['VOLT'], 'phase': cavity_PHASE})
+
+        try:
+            frequency = self.global_parameters['frequency']
+        except KeyError:
+            frequency = 1.0
+        beamline.add_element(name + 'cav', 'rfca',
+                             {'l': cavity_L, 'volt': element['VOLT'],
+                              'phase': cavity_PHASE, 'frequency': frequency})
         beamline.add_element(name + '_q2', 'quadrupole', {'k1': q2_K1, 'l': q2_L})
 
+    def handle_ncells(self, name, element, beamline):
+        assert self.global_parameters['frequency'], "NCELL must have a frequency set to determine length"
+        wavelength = c / self.global_parameters['frequency']
+        length = element['BETA'] * wavelength * element['N']
+        cavity_PHASE = element['PHASE'] + 90.
+        cavity_VOLT = element['VOLT'] * length
+        cavity_FREQ = self.global_parameters['frequency']
+        beamline.add_element(name + 'cav', 'rfca',
+                             {'l': length, 'volt': cavity_VOLT, 'phase': cavity_PHASE,
+                              'frequency': cavity_FREQ})
+
+    def handle_freq(self, name, element, beamline):
+        self.global_parameters['frequency'] = element['frequency']
+
+    def handle_field_map(self, name, element, beamline):
+        # Very crude implementation of this element. We will assume just 1D RF field for now.
+        # We will assume the field map file has max/min of 1.0 / -1.0.
+
+        frequency = self.global_parameters['frequency']
+        volt = element['VOLT'] * 1e6  # field map files store E-field in MV/m
+
+        beamline.add_element(name + 'cav', 'rfca',
+                             {'l': element['L'], 'volt': volt, 'phase': element['PHASE'],
+                              'frequency': frequency})
+
+
     handlers = {
-        'dtl_cell': handle_dtl_cell.__func__
+        'dtl_cel': handle_dtl_cell.__func__,
+        'freq': handle_freq.__func__,
+        'ncells': handle_ncells.__func__,
+        'field_map': handle_field_map.__func__
     }
 
     def __init__(self, filename, beamline_name):
