@@ -547,12 +547,17 @@ class readSDDS:
         data_arrays = []
         # Hand variable record length read by iterating through rows
         if len(data_keys) > 1:
-            for dk in data_keys:
+            for i, dk in enumerate(data_keys):
                 if self._variable_length_records:
                     try:
+                        print('ran')
                         record_length = data_arrays[-1]['record_length']
-                        dk = (dk[0][0], dk[0][1].format(record_length[0]))
+                        print('I see record length of:', record_length)
+                        print("I now set", data_keys[i][0][0], 'to be',data_keys[i][0][1])
+                        data_keys[i][0] = (data_keys[i][0][0], data_keys[i][0][1].format(record_length[0]))
+                        print("I set dk to be:", dk)
                     except (ValueError, IndexError):
+                        print('didnt')
                         pass
                 if self.data['&data'][0].fields['mode'] == 'ascii':
                     new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
@@ -560,6 +565,7 @@ class readSDDS:
                     if self.buffer:
                         position += 1
                 else:
+                    print('using dk of', dk)
                     new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
                     if self.buffer:
                         position += np.dtype(dk).itemsize
@@ -573,7 +579,6 @@ class readSDDS:
                 if self.buffer:
                     position += 1 * row_count
             else:
-                print('should show')
                 new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
                 if self.buffer:
                     position += np.dtype(dk).itemsize * row_count
