@@ -152,27 +152,42 @@ class StructData:
 
     def add(self, data):
         data = self._merge(data)
-        self._check_type(data)
+        print("DATA IIIIS", data)
+        print("DTYPE IIS", data.dtype)
+        #self._check_type(data)
         if self.data is None:
             self.data = data
         else:
             self.data = np.concatenate([self.data, data])
 
     def _merge(self, data):
+        print('data is', data)
         if len(data) == 1:
             return data[0]
         else:
-            new_array = np.empty(1, dtype=sum((a.dtype.descr for a in data), []))
+            dtype_hold = sum((a.dtype.descr for a in data), [])
+            merged_dtype = []
+            for descr in dtype_hold:
+                if descr[0] == 'record_length':
+                    continue
+                elif descr[1][1] == 'S':
+                    merged_dtype.append((descr[0], 'U25'))
+                else:
+                    merged_dtype.append(descr)
+            #merged_dtype = [descr for descr in merged_dtype if descr[0] != 'record_length']
+            new_array = np.empty(1, dtype=merged_dtype)
             for arr in data:
-                new_array[arr.dtype.names[0]] = arr[arr.dtype.names[0]]
+                names = [n for n in arr.dtype.names if n != 'record_length']
+                new_array[names] = arr[names]
             return new_array
 
-    def _check_type(self, data):
+    def _check_type(self, data): #Next: Need to look at adjusting string size each time up to maximum? Probably just don't merge'
         if data.dtype != np.dtype(self.data_type):
             raise TypeError("Array Datatypes do not match")
 
     def clean_record_lengths(self):
-        return
+        print("DOES NOTHING FIX ME")
+        return None
 
 
 
@@ -547,29 +562,32 @@ class readSDDS:
         data_arrays = []
         # Hand variable record length read by iterating through rows
         if len(data_keys) > 1:
-            for i, dk in enumerate(data_keys):
-                if self._variable_length_records:
-                    try:
-                        print('ran')
-                        record_length = data_arrays[-1]['record_length']
-                        print('I see record length of:', record_length)
-                        print("I now set", data_keys[i][0][0], 'to be',data_keys[i][0][1])
-                        data_keys[i][0] = (data_keys[i][0][0], data_keys[i][0][1].format(record_length[0]))
-                        print("I set dk to be:", dk)
-                    except (ValueError, IndexError):
-                        print('didnt')
-                        pass
-                if self.data['&data'][0].fields['mode'] == 'ascii':
-                    new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
-                                                   comments='!', deletechars='')
-                    if self.buffer:
-                        position += 1
-                else:
-                    print('using dk of', dk)
-                    new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
-                    if self.buffer:
-                        position += np.dtype(dk).itemsize
-                data_arrays.append(new_array)
+            for row in range(2):
+                for i, dk in enumerate(data_keys):
+                    if self._variable_length_records:
+                        dk = dk.copy()
+                        try:
+                            print('ran')
+                            record_length = data_arrays[-1]['record_length']
+                            print('I see record length of:', record_length)
+                            print("I now set", data_keys[i][0][0], 'to be',data_keys[i][0][1])
+                            dk[0] = (dk[0][0], dk[0][1].format(record_length[0]))
+                            print("I set dk to be:", dk)
+                        except (ValueError, IndexError):
+                            print('didnt')
+                            pass
+                    if self.data['&data'][0].fields['mode'] == 'ascii':
+                        new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
+                                                       comments='!', deletechars='')
+                        if self.buffer:
+                            position += 1
+                    else:
+                        print('using dk of', dk)
+                        new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
+                        if self.buffer:
+                            position += np.dtype(dk).itemsize
+                    print('appending', new_array)
+                    data_arrays.append(new_array)
         else:
             # If no variable records all rows can be read at once
             dk = data_keys[0]
