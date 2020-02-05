@@ -135,8 +135,9 @@ class Data(Datum):
 
 
 class StructData:
-    def __init__(self, data_type):
+    def __init__(self, data_type, max_string_length):
         self.data = None
+        self.max_string_length = max_string_length
         self.data_type = data_type
 
     @property
@@ -146,36 +147,32 @@ class StructData:
     @data_type.setter
     def data_type(self, data_type):
         if type(data_type[0]) == list:
-            self._data_type = [b for a in data_type for b in a]
+            self._data_type = []
+            merge_hold = [b for a in data_type for b in a]
+            for descr in merge_hold:
+                if descr[0] == 'record_length':
+                    continue
+                elif type(descr[1]) == str:
+                    self._data_type.append((descr[0], 'U{}'.format(self.max_string_length)))
+                else:
+                    self._data_type.append(descr)
         else:
             self._data_type = data_type
 
     def add(self, data):
-        data = self._merge(data)
-        print("DATA IIIIS", data)
-        print("DTYPE IIS", data.dtype)
-        #self._check_type(data)
-        if self.data is None:
-            self.data = data
-        else:
-            self.data = np.concatenate([self.data, data])
+        for datum in data:
+            datum = self._merge(datum)
+            #TODO checkif needed: self._check_type(data)
+            if self.data is None:
+                self.data = datum
+            else:
+                self.data = np.concatenate([self.data, datum])
 
     def _merge(self, data):
-        print('data is', data)
         if len(data) == 1:
             return data[0]
         else:
-            dtype_hold = sum((a.dtype.descr for a in data), [])
-            merged_dtype = []
-            for descr in dtype_hold:
-                if descr[0] == 'record_length':
-                    continue
-                elif descr[1][1] == 'S':
-                    merged_dtype.append((descr[0], 'U25'))
-                else:
-                    merged_dtype.append(descr)
-            #merged_dtype = [descr for descr in merged_dtype if descr[0] != 'record_length']
-            new_array = np.empty(1, dtype=merged_dtype)
+            new_array = np.empty(1, dtype=self.data_type)
             for arr in data:
                 names = [n for n in arr.dtype.names if n != 'record_length']
                 new_array[names] = arr[names]
@@ -210,7 +207,7 @@ class readSDDS:
         - Files that store string data in columns are not currently supported
     """
 
-    def __init__(self, input_file, verbose=False, buffer=True, max_string_length=100):
+    def __init__(self, input_file, verbose=False, buffer=True, max_string_length=25):
         """
         Initialize the read in.
 
@@ -360,7 +357,7 @@ class readSDDS:
         else:
             self._data_mode = 'binary'
             # If binary the exact string lengths will be found dynamically and inserted here
-            self.max_string_length = '{}'
+            #self.max_string_length = '{}'
 
         return self.data
 
@@ -369,7 +366,7 @@ class readSDDS:
         for name in sdds_namelists[2:]:
             getattr(self, '_compose_'+name[1:]+'_datatypes')()
             if len(getattr(self, '_'+name[1:]+'_keys')) > 0:
-                setattr(self, name[1:]+'s', StructData(getattr(self, '_'+name[1:]+'_keys')))
+                setattr(self, name[1:]+'s', StructData(getattr(self, '_'+name[1:]+'_keys'), self.max_string_length))
 
     def _compose_array_datatypes(self):
         pass
@@ -389,7 +386,7 @@ class readSDDS:
                     if col.fields['field_length'] == 0:
                         self._variable_length_records = True
                 self._column_keys[-1].append((col.fields['name'],
-                                              col.type_key.format(self.max_string_length)))
+                                              col.type_key.format('{}')))
             else:
                 self._column_keys[-1].append((col.fields['name'], col.type_key))
         if len(self._column_keys[0]) == 0:
@@ -414,7 +411,7 @@ class readSDDS:
                         self._parameter_keys.append([('record_length', np.int32)])
                         self._variable_length_records = True
                     self._parameter_keys.append([(par.fields['name'],
-                                                     par.type_key.format(self.max_string_length))])
+                                                     par.type_key.format('{}'))])
                 else:
                     self._parameter_keys.append([(par.fields['name'], par.type_key)])
 
@@ -425,12 +422,9 @@ class readSDDS:
             # ASCII: count may not be included and will be at the end of the parameters
             self._parameter_keys.append([('row_counts', data_types['long'])])
         else:
-            print('HDHSH')
             if len(self._parameter_keys[0]) == 0:
                 # Need empty checks to succeed
                 self._parameter_keys.pop(0)
-
-        print('pardt', self._parameter_keys)
 
     def _get_reader(self):
         if self._data_mode == 'ascii':
@@ -494,7 +488,6 @@ class readSDDS:
             # get position of the page start. if page = 1 then don't need par and col sizes anyway
             # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated
             # value though. could be iterable.
-            print('position {}'.format(position))
             # if not self.data['&data'].fields['no_row_count']:
             #     row_count = self._get_column_count(position)
             if self._check_file_end(position):
@@ -504,8 +497,6 @@ class readSDDS:
                 break
             # based on position and data key get the data and update the parameter_size if it was unknown (<0)
             parameter_data, position = self._get_parameter_data(self._parameter_keys, position)
-            print('After read position: {}'.format(position))
-            print('data: {}'.format(parameter_data))
             # save data if needed
             if page in user_pages and parameter_data:
                 self._parameters.add(parameter_data)
@@ -518,13 +509,10 @@ class readSDDS:
                 row_count = None  # TODO add in the mechanism to catch the end of the column data
             # if not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
             #     row_count = self.parameters['row_counts']
-            print(self._parameter_keys)
-            print(self._column_keys)
             # same but for columns
             if row_count is 0:
                 continue
             if page in user_pages or self._variable_length_records:
-                print('poad', position)
                 column_data, position = self._get_column_data(self._column_keys, position, row_count)
                 if page in user_pages:
                     self._columns.add(column_data)
@@ -534,12 +522,12 @@ class readSDDS:
             # self.position = position
 
     def _get_parameter_data(self, data_keys, position):
-        data_arrays = []
+        data_arrays = [[]]
         # TODO: The variable record lengths portion has not actually been tested yet
         for dk in data_keys:
             if self._variable_length_records:
                 try:
-                    record_length = data_arrays[-1]['record_length']
+                    record_length = data_arrays[1][-1]['record_length']
                     dk = (dk[0][0], dk[0][1].format(record_length[0]))
                 except (ValueError, IndexError):
                     pass
@@ -553,28 +541,23 @@ class readSDDS:
                 if self.buffer:
                     position += np.dtype(dk).itemsize
             # print(new_array, new_array.dtype)
-            data_arrays.append(new_array)
+            data_arrays[-1].append(new_array)
 
         return data_arrays, position
 
     def _get_column_data(self, data_keys, position, row_count):
         # TODO: Account for now_row_count possibility
-        data_arrays = []
+        data_arrays = [[]]
         # Hand variable record length read by iterating through rows
         if len(data_keys) > 1:
-            for row in range(2):
+            for row in range(row_count):
                 for i, dk in enumerate(data_keys):
                     if self._variable_length_records:
                         dk = dk.copy()
                         try:
-                            print('ran')
-                            record_length = data_arrays[-1]['record_length']
-                            print('I see record length of:', record_length)
-                            print("I now set", data_keys[i][0][0], 'to be',data_keys[i][0][1])
+                            record_length = data_arrays[-1][-1]['record_length']
                             dk[0] = (dk[0][0], dk[0][1].format(record_length[0]))
-                            print("I set dk to be:", dk)
                         except (ValueError, IndexError):
-                            print('didnt')
                             pass
                     if self.data['&data'][0].fields['mode'] == 'ascii':
                         new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
@@ -582,12 +565,11 @@ class readSDDS:
                         if self.buffer:
                             position += 1
                     else:
-                        print('using dk of', dk)
                         new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
                         if self.buffer:
                             position += np.dtype(dk).itemsize
-                    print('appending', new_array)
-                    data_arrays.append(new_array)
+                    data_arrays[-1].append(new_array)
+                data_arrays.append([])
         else:
             # If no variable records all rows can be read at once
             dk = data_keys[0]
@@ -600,7 +582,7 @@ class readSDDS:
                 new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
                 if self.buffer:
                     position += np.dtype(dk).itemsize * row_count
-            data_arrays.append(new_array)
+            data_arrays[-1].append(new_array)
 
         return data_arrays, position
 
