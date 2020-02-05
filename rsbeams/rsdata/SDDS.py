@@ -385,8 +385,11 @@ class readSDDS:
                     self._column_keys.append([])
                     if col.fields['field_length'] == 0:
                         self._variable_length_records = True
-                self._column_keys[-1].append((col.fields['name'],
-                                              col.type_key.format('{}')))
+                    self._column_keys[-1].append((col.fields['name'],
+                                                  col.type_key.format('{}')))
+                else:
+                    self._column_keys[-1].append((col.fields['name'],
+                                                  col.type_key.format(self.max_string_length)))
             else:
                 self._column_keys[-1].append((col.fields['name'], col.type_key))
         if len(self._column_keys[0]) == 0:
@@ -410,8 +413,11 @@ class readSDDS:
                     if self._data_mode == 'binary':
                         self._parameter_keys.append([('record_length', np.int32)])
                         self._variable_length_records = True
-                    self._parameter_keys.append([(par.fields['name'],
-                                                     par.type_key.format('{}'))])
+                        self._parameter_keys.append([(par.fields['name'],
+                                                         par.type_key.format('{}'))])
+                    else:
+                        self._parameter_keys.append([(par.fields['name'],
+                                                         par.type_key.format(self.max_string_length))])
                 else:
                     self._parameter_keys.append([(par.fields['name'], par.type_key)])
 
