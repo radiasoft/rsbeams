@@ -139,6 +139,7 @@ class StructData:
         self.data = None
         self.max_string_length = max_string_length
         self.data_type = data_type
+        self._oldarray = False
 
     @property
     def data_type(self):
@@ -159,14 +160,30 @@ class StructData:
         else:
             self._data_type = data_type
 
-    def add(self, data):
+    def add(self, data, extend=False):
+        data_hold = None
+        # Stack page data data together
         for datum in data:
             datum = self._merge(datum)
+            print(datum.shape)
             #TODO checkif needed: self._check_type(data)
-            if self.data is None:
-                self.data = datum
+            if data_hold is None:
+                data_hold = datum
             else:
-                self.data = np.concatenate([self.data, datum])
+                data_hold = np.concatenate([data_hold, datum])
+        # If this isn't the first page then extend array down axis 1
+        print('shape', data_hold.shape)
+        if self.data is None:
+            print('first', data_hold)
+            self.data = data_hold.reshape(-1, 1)
+        elif extend:
+            print('subseq', data_hold)
+            print(data_hold.shape, self.data.shape)
+            self.data = np.concatenate([self.data.reshape(-1, 1),
+                                        data_hold.reshape(-1, 1)], axis=1)
+        else:
+            self.data = np.concatenate([self.data.reshape(-1, 1),
+                                        data_hold.reshape(-1, 1)], axis=0)
 
     def _merge(self, data):
         if len(data) == 1:
@@ -490,6 +507,10 @@ class readSDDS:
         else:
             position = 0 + self._header_line_count * self.buffer
         for page in pages:
+            # if page not in user_pages:
+            #     print(page, user_pages)
+            #     print('stopping here')
+            #     break
             print('page number {}'.format(page))
             # get position of the page start. if page = 1 then don't need par and col sizes anyway
             # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated
@@ -510,7 +531,7 @@ class readSDDS:
             if len(self.data['&column']) == 0:
                 row_count = 0
             elif not self.data['&data'][0].fields['no_row_counts']:
-                row_count = self.parameters['row_counts'][0]
+                row_count = self.parameters['row_counts'][0][-1]
             else:
                 row_count = None  # TODO add in the mechanism to catch the end of the column data
             # if not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
@@ -519,9 +540,12 @@ class readSDDS:
             if row_count is 0:
                 continue
             if page in user_pages or self._variable_length_records:
+                print(row_count)
                 column_data, position = self._get_column_data(self._column_keys, position, row_count)
                 if page in user_pages:
-                    self._columns.add(column_data)
+                    print('adding columns')
+                    self._columns.add(column_data, extend=True)
+                    print(self._columns.data)
             # TODO if not in user_pages or variable record then need to move the position appropriately
 
             # position = self._get_position(parameter_size, column_size, page)
