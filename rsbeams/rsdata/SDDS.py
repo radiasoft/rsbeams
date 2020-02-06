@@ -507,10 +507,10 @@ class readSDDS:
         else:
             position = 0 + self._header_line_count * self.buffer
         for page in pages:
-            # if page not in user_pages:
-            #     print(page, user_pages)
-            #     print('stopping here')
-            #     break
+            if not isinstance(user_pages, GeneratorType) and page > np.max(user_pages):
+                print(page, user_pages)
+                print('stopping here')
+                break
             print('page number {}'.format(page))
             # get position of the page start. if page = 1 then don't need par and col sizes anyway
             # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated

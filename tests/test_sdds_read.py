@@ -328,10 +328,14 @@ class TestColumnRead(unittest.TestCase):
         print('final column result', reader.columns)
 
     def test3(self):
-        filename = 'linear_dipole_20_nopar.sig'
+        filename = 'exit.w0'
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
         print(reader._columns.data_type)
+        reader.read2(pages=[0,1])
+        print('final parameter result', reader.parameters)
+        print('final column result', reader.columns)
+        print(reader.columns['x'].shape)
 
 
 # class TestReadBinary1(unittest.TestCase):
