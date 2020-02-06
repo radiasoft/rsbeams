@@ -1,4 +1,8 @@
 import unittest
+import pandas as pd
+from io import StringIO
+import numpy as np
+from subprocess import Popen, PIPE
 from rsbeams.rsdata.SDDS import readSDDS, supported_namelists
 from headers import header1, header2, header3, header4
 
@@ -312,30 +316,64 @@ class TestParameterRead(unittest.TestCase):
 
 class TestColumnRead(unittest.TestCase):
 
+    def setUp(self):
+        self.tests = {
+            'test1': {'filename': 'linear_dipole_20_nopar_nostr.sig',
+                      'columns': [],
+                      'data': None},
+            'test2': {'filename': 'linear_dipole_20_nopar.sig',
+                      'columns': []},
+            'test3': {'filename': 'exit.w0',
+                      'columns': []}
+        }
+        use_buffer = True
+        for testname, test in self.tests.items():
+            filename = test['filename']
+            reader = readSDDS(filename, buffer=use_buffer)
+            for col in reader.data['&column']:
+                test['columns'].append(col.fields['name'])
+            run_string = 'sdds2stream  -delimiter=" " {filename} -col=' + ','.join(test['columns'])
+            data_pipe = Popen(run_string.format(filename=filename), shell=True, stdout=PIPE, stderr=PIPE)
+            cols, err = data_pipe.communicate()
+            dat = pd.read_csv(StringIO(cols.decode().lstrip()), delim_whitespace=True, names=test['columns'])
+            test['data'] = dat
+
     def test1(self):
-        filename = 'linear_dipole_20_nopar_nostr.sig'
+        test = self.tests['test1']
+        filename = test['filename']
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read2(pages=[0])
-        print('final column result:', reader.columns)
-        print(reader.parameters)
+        for name in test['columns']:
+            self.assertTrue(np.all(np.isclose(reader.columns[name].squeeze(),
+                                              test['data'][name],
+                                              rtol=1e-6)))
 
     def test2(self):
-        filename = 'linear_dipole_20_nopar.sig'
+        test = self.tests['test2']
+        filename = test['filename']
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read2(pages=[0])
-        print('final column result', reader.columns)
+        for name in test['columns']:
+            print('DSFDF', reader.columns[name].shape)
+            self.assertTrue(np.all(np.isclose(reader.columns[name].squeeze(),
+                                              test['data'][name],
+                                              rtol=1e-6)))
 
     def test3(self):
-        filename = 'exit.w0'
+        test = self.tests['test3']
+        filename = test['filename']
+        page_length = test['data'].count()[0] // 20
+        cols = [0, 1]
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
-        print(reader._columns.data_type)
-        reader.read2(pages=[0,1])
-        print('final parameter result', reader.parameters)
-        print('final column result', reader.columns)
-        print(reader.columns['x'].shape)
+        reader.read2(pages=cols)
+        for name in test['columns']:
+            for col in cols:
+                self.assertTrue(np.all(np.isclose(reader.columns[name][:, col].squeeze(),
+                                                  test['data'][name][col*page_length:(col+1)*page_length],
+                                                  rtol=1e-6)))
 
 
 # class TestReadBinary1(unittest.TestCase):
