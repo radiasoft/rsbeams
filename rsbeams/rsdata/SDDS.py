@@ -13,6 +13,7 @@ from types import GeneratorType
 # TODO: Start placing the _data_mode shortcut attribute in and testing
 # TODO: Will need to test buffer read after full implementation. looks like my first tests may have led me astray.
 #      multipage ascii parameter read is much slower. probably due to the need to catch comments during buffer creation
+# TODO: Need to add support for SDDS versions 2-4
 
 def _return_type(string):
     target = 'type='
@@ -165,23 +166,25 @@ class StructData:
         # Stack page data data together
         for datum in data:
             datum = self._merge(datum)
-            print(datum.shape)
             #TODO checkif needed: self._check_type(data)
             if data_hold is None:
                 data_hold = datum
             else:
                 data_hold = np.concatenate([data_hold, datum])
         # If this isn't the first page then extend array down axis 1
-        print('shape', data_hold.shape)
         if self.data is None:
-            print('first', data_hold)
+            # Data is reshaped for parameter setup
+            # if data is fed into columns the extra dimension will be quashed
             self.data = data_hold.reshape(-1, 1)
         elif extend:
-            print('subseq', data_hold)
-            print(data_hold.shape, self.data.shape)
-            self.data = np.concatenate([self.data.reshape(-1, 1),
-                                        data_hold.reshape(-1, 1)], axis=1)
+            # Add a new page for columns
+            if self.data.shape[1] == 1:
+                self.data = np.array([self.data.flatten(), data_hold])
+            else:
+                data_hold = data_hold.reshape(-1, 1)
+                self.data = np.array(list(self.data) + [data_hold.flatten()])
         else:
+            # Add a new page for rows
             self.data = np.concatenate([self.data.reshape(-1, 1),
                                         data_hold.reshape(-1, 1)], axis=0)
 
@@ -480,8 +483,10 @@ class readSDDS:
         return position
 
     def _check_file_end(self, position):
+        print('lengths')
+        print(position, len(self.openf))
         if self.buffer:
-            if len(self.openf) == position:
+            if len(self.openf) <= position:
                 return True
         else:
             pointer = self.openf.tell()
@@ -519,13 +524,13 @@ class readSDDS:
             #     row_count = self._get_column_count(position)
             if self._check_file_end(position):
                 # TODO: Get the logic right here. Should not trigger unless user requests a bad page.
-                if page in user_pages or not isinstance(user_pages, GeneratorType):
+                if page in user_pages:
                     print('Could not read page {}'.format(page))
                 break
             # based on position and data key get the data and update the parameter_size if it was unknown (<0)
             parameter_data, position = self._get_parameter_data(self._parameter_keys, position)
             # save data if needed
-            if page in user_pages and parameter_data:
+            if parameter_data:
                 self._parameters.add(parameter_data)
 
             if len(self.data['&column']) == 0:
@@ -539,13 +544,12 @@ class readSDDS:
             # same but for columns
             if row_count is 0:
                 continue
-            if page in user_pages or self._variable_length_records:
+            if (isinstance(user_pages, GeneratorType) or (page in user_pages)) or self._variable_length_records:
                 print(row_count)
                 column_data, position = self._get_column_data(self._column_keys, position, row_count)
-                if page in user_pages:
-                    print('adding columns')
-                    self._columns.add(column_data, extend=True)
-                    print(self._columns.data)
+
+                print('adding columns')
+                self._columns.add(column_data, extend=True)
             # TODO if not in user_pages or variable record then need to move the position appropriately
 
             # position = self._get_position(parameter_size, column_size, page)
@@ -577,10 +581,11 @@ class readSDDS:
 
     def _get_column_data(self, data_keys, position, row_count):
         # TODO: Account for now_row_count possibility
-        data_arrays = [[]]
+        data_arrays = []
         # Hand variable record length read by iterating through rows
         if len(data_keys) > 1:
             for row in range(row_count):
+                data_arrays.append([])
                 for i, dk in enumerate(data_keys):
                     if self._variable_length_records:
                         dk = dk.copy()
@@ -599,7 +604,6 @@ class readSDDS:
                         if self.buffer:
                             position += np.dtype(dk).itemsize
                     data_arrays[-1].append(new_array)
-                data_arrays.append([])
         else:
             # If no variable records all rows can be read at once
             dk = data_keys[0]
