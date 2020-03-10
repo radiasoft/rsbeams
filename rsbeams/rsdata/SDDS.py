@@ -5,15 +5,17 @@ from struct import pack, unpack, calcsize, error
 from sys import byteorder
 from copy import copy
 from types import GeneratorType
-# TODO: Will probably need a new dict object that uses ordered Dict for py2 and userdict or standard dict for py3
+
 # TODO: Would be nice to refactor the old camel case convention variables
 # TODO: Add multipage write support - mostly means defining how they are input
 # TODO: There may be initial nuance with the row count parameter. See no_row_counts in &data command from standard.
 # TODO: Need to support additional_header_lines option (never actually seen this used though)
-# TODO: Start placing the _data_mode shortcut attribute in and testing
 # TODO: Will need to test buffer read after full implementation. looks like my first tests may have led me astray.
 #      multipage ascii parameter read is much slower. probably due to the need to catch comments during buffer creation
 # TODO: Need to add support for SDDS versions 2-4
+# TODO: Handle when readSDDS.read is called multiple times for same instance. Current behavior appends to .parameters and .columns
+#       probably want to have it do nothing and print a statement to set a flag to overwrite.
+
 
 def _return_type(string):
     target = 'type='
@@ -494,36 +496,38 @@ class readSDDS:
         # Always start after the header
         if not self.buffer:
             self.openf.seek(self.header_end_pointer)
+
         # Select pages to be stored during the read - if None then store everything
+        # pages: internal counter for page numbers
+        # user_pages: store what pages are returned 
         if pages:
             user_pages = pages
         else:
             user_pages = iter_always()
         pages = iter_always()
+
         # Buffer reading has no pointer, you always start at the beginning so we need to move the start offset
         if self._data_mode == 'binary':
             position = 0 + self.header_end_pointer * self.buffer
         else:
             position = 0 + self._header_line_count * self.buffer
+
         for page in pages:
             if not isinstance(user_pages, GeneratorType) and page > np.max(user_pages):
                 print(page, user_pages)
                 print('stopping here')
                 break
-            # get position of the page start. if page = 1 then don't need par and col sizes anyway
-            # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated
-            # value though. could be iterable.
-            # if not self.data['&data'].fields['no_row_count']:
-            #     row_count = self._get_column_count(position)
+
             if self._check_file_end(position):
                 # TODO: Get the logic right here. Should not trigger unless user requests a bad page.
                 if page in user_pages:
                     print('Could not read page {}'.format(page))
                 break
-            # based on position and data key get the data and update the parameter_size if it was unknown (<0)
+
+            # parameters are always read because we need to know if column_rows changes between pages
             parameter_data, position = self._get_parameter_data(self._parameter_keys, position)
             # save data if needed
-            if parameter_data:
+            if parameter_data and (page in user_pages):
                 self._parameters.add(parameter_data)
 
             if len(self.data['&column']) == 0:
@@ -531,19 +535,16 @@ class readSDDS:
             elif not self.data['&data'][0].fields['no_row_counts']:
                 row_count = self.parameters['row_counts'][0][-1]
             else:
-                row_count = None  # TODO add in the mechanism to catch the end of the column data
-            # if not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
-            #     row_count = self.parameters['row_counts']
-            # same but for columns
+                row_count = None 
+
             if row_count is 0:
                 continue
             if (isinstance(user_pages, GeneratorType) or (page in user_pages)) or self._variable_length_records:
                 column_data, position = self._get_column_data(self._column_keys, position, row_count)
                 self._columns.add(column_data, extend=True)
-            # TODO if not in user_pages or variable record then need to move the position appropriately
-
-            # position = self._get_position(parameter_size, column_size, page)
-            # self.position = position
+            else:
+                # still need to update position what would have been read
+                position += np.dtype(self._column_keys[0]).itemsize * row_count
 
     def _get_parameter_data(self, data_keys, position):
         data_arrays = [[]]
