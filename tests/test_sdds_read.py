@@ -356,10 +356,12 @@ class TestColumnRead(unittest.TestCase):
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read2(pages=[0])
         for name in test['columns']:
-            print('DSFDF', reader.columns[name].shape)
-            self.assertTrue(np.all(np.isclose(reader.columns[name].squeeze(),
-                                              test['data'][name],
-                                              rtol=1e-6)))
+            if reader.columns[name].dtype.type == np.str_:
+                pass
+            else:
+                self.assertTrue(np.all(np.isclose(reader.columns[name].squeeze(),
+                                                  test['data'][name],
+                                                  rtol=1e-6)))
 
     def test3(self):
         test = self.tests['test3']
@@ -369,9 +371,10 @@ class TestColumnRead(unittest.TestCase):
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read2(pages=cols)
+        print(reader.columns.shape)
         for name in test['columns']:
             for col in cols:
-                self.assertTrue(np.all(np.isclose(reader.columns[name][:, col].squeeze(),
+                self.assertTrue(np.all(np.isclose(reader.columns[name][col, :].squeeze(),
                                                   test['data'][name][col*page_length:(col+1)*page_length],
                                                   rtol=1e-6)))
 

@@ -606,6 +606,7 @@ class readSDDS:
                     data_arrays[-1].append(new_array)
         else:
             # If no variable records all rows can be read at once
+            data_arrays.append([])
             dk = data_keys[0]
             if self.data['&data'][0].fields['mode'] == 'ascii':
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=row_count,
