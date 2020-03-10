@@ -202,10 +202,6 @@ class StructData:
         if data.dtype != np.dtype(self.data_type):
             raise TypeError("Array Datatypes do not match")
 
-    def clean_record_lengths(self):
-        print("DOES NOTHING FIX ME")
-        return None
-
 
 
 
@@ -483,8 +479,6 @@ class readSDDS:
         return position
 
     def _check_file_end(self, position):
-        print('lengths')
-        print(position, len(self.openf))
         if self.buffer:
             if len(self.openf) <= position:
                 return True
@@ -516,7 +510,6 @@ class readSDDS:
                 print(page, user_pages)
                 print('stopping here')
                 break
-            print('page number {}'.format(page))
             # get position of the page start. if page = 1 then don't need par and col sizes anyway
             # if page > 1 then we will have the last calculated sizes. get_position will need to store the accumulated
             # value though. could be iterable.
@@ -545,10 +538,7 @@ class readSDDS:
             if row_count is 0:
                 continue
             if (isinstance(user_pages, GeneratorType) or (page in user_pages)) or self._variable_length_records:
-                print(row_count)
                 column_data, position = self._get_column_data(self._column_keys, position, row_count)
-
-                print('adding columns')
                 self._columns.add(column_data, extend=True)
             # TODO if not in user_pages or variable record then need to move the position appropriately
 
@@ -574,7 +564,6 @@ class readSDDS:
                 new_array = self._get_reader()(self.openf, dtype=dk, count=1, offset=position)
                 if self.buffer:
                     position += np.dtype(dk).itemsize
-            # print(new_array, new_array.dtype)
             data_arrays[-1].append(new_array)
 
         return data_arrays, position
