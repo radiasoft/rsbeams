@@ -179,8 +179,11 @@ class StructData:
             # if data is fed into columns the extra dimension will be quashed
             self.data = data_hold.reshape(-1, 1)
         elif extend:
+            # If 
+            if len(self.data.shape) == 1:
+                self.data = np.array([self.data.flatten(), data_hold])
             # Add a new page for columns
-            if self.data.shape[1] == 1:
+            elif self.data.shape[1] == 1:
                 self.data = np.array([self.data.flatten(), data_hold])
             else:
                 data_hold = data_hold.reshape(-1, 1)
@@ -533,7 +536,7 @@ class readSDDS:
             if len(self.data['&column']) == 0:
                 row_count = 0
             elif not self.data['&data'][0].fields['no_row_counts']:
-                row_count = self.parameters['row_counts'][0][-1]
+                row_count = self.parameters['row_counts'][-1][-1]
             else:
                 row_count = None 
 
@@ -607,6 +610,8 @@ class readSDDS:
                 new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
                 if self.buffer:
                     position += np.dtype(dk).itemsize * row_count
+                    print(row_count)
+                    print(np.dtype(dk).itemsize * row_count)
             data_arrays[-1].append(new_array)
 
         return data_arrays, position
