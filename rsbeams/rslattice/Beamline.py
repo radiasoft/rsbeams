@@ -1,7 +1,7 @@
 from .Element import Element
 from sympy import symbols, cosh, sinh, sqrt, lambdify
 from sympy.matrices import Matrix
-from ruamel import yaml
+import yaml
 
 
 class StructuredBeamline(object):
@@ -21,13 +21,13 @@ class StructuredBeamline(object):
                          [0, 0, 1, L],
                          [0, 0, 0, 1]))
     }
-    elements = {}  # TODO: This needs to be moved into __init__
 
     def __init__(self, name):
         self.name = name
         self.sequence = []
         self._length = self._get_length
         self._top = self  # Top level beamline if any
+        self.elements = {} 
 
     @property
     def length(self):
