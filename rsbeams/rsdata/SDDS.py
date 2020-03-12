@@ -426,7 +426,7 @@ class readSDDS:
             self._column_keys.pop(0)
             return
         if self.data['&data'][0].fields['mode'] == 'ascii':
-            self._column_keys = [g for f in self._column_keys for g in f]
+            self._column_keys = [[g for f in self._column_keys for g in f]]
 
     def _compose_parameter_datatypes(self):
         """
@@ -496,12 +496,40 @@ class readSDDS:
             if len(self.openf) <= position:
                 return True
         else:
+            # Usually will catch binary end
             pointer = self.openf.tell()
+
             if not self.openf.read(1):
                 return True
+            while True:
+                line = self.openf.readline()
+                if not line.strip():
+                    return True
+                else:
+                    break
+
             self.openf.seek(pointer)
 
         return False
+
+    def _get_ascii_row_count(self, start_position):
+        line_count = 0
+        if self.buffer:
+            # openf is a list
+            for line in self.openf[start_position:]:
+                if not line:
+                    return line_count
+                else:
+                    line_count += 1
+        else:
+            start_position = self.openf.tell()
+            while True:
+                line = self.openf.readline()
+                if not line.strip():
+                    self.openf.seek(start_position)
+                    return line_count
+                else:
+                    line_count += 1
 
     def read2(self, pages=None):
         # Always start after the header
@@ -546,7 +574,7 @@ class readSDDS:
             elif not self.data['&data'][0].fields['no_row_counts']:
                 row_count = self.parameters['row_counts'][-1][-1]
             else:
-                row_count = None 
+                row_count = self._get_ascii_row_count(position)
 
             if row_count is 0:
                 continue
@@ -613,7 +641,7 @@ class readSDDS:
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=row_count,
                                                comments='!', deletechars='')
                 if self.buffer:
-                    position += 1 * row_count
+                    position += 1 * (row_count + 1 * int(self.data['&data'][0].fields['no_row_counts']))
             else:
                 new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
                 if self.buffer:

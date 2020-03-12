@@ -291,6 +291,7 @@ class TestParameterRead(unittest.TestCase):
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read2()
+        print(reader.parameters)
 
     def test3(self):
         filename = 'elegant_final.fin'
@@ -378,6 +379,18 @@ class TestColumnRead(unittest.TestCase):
                                                   test['data'][name][col*page_length:(col+1)*page_length],
                                                   rtol=1e-6)))
 
+    def test4(self):
+        filename = 'error_5.txt'
+        # cols = [0, 1]
+        use_buffer = False
+        reader = readSDDS(filename, buffer=use_buffer)
+        print(reader._variable_length_records)
+        # print(reader.openf.readline())
+        # print(reader.openf.readline())
+        reader.read2()
+        print(reader.columns)
+        # print('Counts?', reader.data['&data'][0].fields['no_row_counts'])
+        # print(reader.columns.shape)
 
 # class TestReadBinary1(unittest.TestCase):
 #     filename = 'test_read_1_bunch.out'
