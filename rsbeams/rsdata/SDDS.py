@@ -55,7 +55,7 @@ def iter_always():
 
 # Accepted namelists in header. &data is treated as a special case.
 # Types with data outside the header should be appended to the end of the list for _initialize_data_arrays
-sdds_namelists = ['&description', '&include', '&column', '&parameter', '&array']
+sdds_namelists = ['&associate', '&description', '&include', '&column', '&parameter', '&array']
 # TODO: Find sdds use case with 'short' type
 # SDDS defaults to 32 bit unsigned longs on all test systems while numpy uses 64 bits for the np.int_ in test cases
 #  therefore int datatypes are hardcoded in size
@@ -135,6 +135,14 @@ class Data(Datum):
     def __init__(self, namelist):
         self.fields = {'mode': 'binary', 'lines_per_row': 1, 'no_row_counts': 0, 'additional_header_lines': 0}
         super().__init__(namelist)
+        
+
+class Associate(Datum):
+    # This field does not appear in the official SDDS spec. It is in the SDDS source.
+    #  There is reference to it in very old SDDS manuals in the ToC but no matching text
+    def __init__(self, namelist):
+        self.fields = {'name': '', 'filename': '', 'path': '', 'description': '', 'contents': '', 'sdds': ''}
+        super().__init__(namelist)
 
 
 class StructData:
@@ -211,7 +219,7 @@ class StructData:
 
 
 # Available namelists from SDDS standard
-supported_namelists = {'&parameter': Parameter, '&column': Column, '&data': Data, '&array': Array}
+supported_namelists = {'&parameter': Parameter, '&column': Column, '&data': Data, '&array': Array, '&associate': Associate}
 
 
 class readSDDS:
@@ -384,7 +392,7 @@ class readSDDS:
 
     def _initialize_data_arrays(self):
         # TODO: the row count will must always be created in binary mode, even if there are no other parameters
-        for name in sdds_namelists[2:]:
+        for name in sdds_namelists[3:]:  # TODO: I have using the order of the list to do this. Just test if the proper method is there.
             getattr(self, '_compose_'+name[1:]+'_datatypes')()
             if len(getattr(self, '_'+name[1:]+'_keys')) > 0:
                 setattr(self, name[1:]+'s', StructData(getattr(self, '_'+name[1:]+'_keys'), self.max_string_length))
@@ -610,8 +618,6 @@ class readSDDS:
                 new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
                 if self.buffer:
                     position += np.dtype(dk).itemsize * row_count
-                    print(row_count)
-                    print(np.dtype(dk).itemsize * row_count)
             data_arrays[-1].append(new_array)
 
         return data_arrays, position
