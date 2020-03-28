@@ -275,9 +275,6 @@ class TestFirstPageParameterRead(unittest.TestCase):
 
 
 class TestParameterRead(unittest.TestCase):
-    # Just a test of a single `_get_parameter_data` call
-    # Does not test multipage or position calculation dependent read to avoid
-    # Additional dependencies
 
     def test1(self):
         filename = 'elegant_final.fin'
@@ -392,22 +389,68 @@ class TestColumnRead(unittest.TestCase):
         # print('Counts?', reader.data['&data'][0].fields['no_row_counts'])
         # print(reader.columns.shape)
 
-# class TestReadBinary1(unittest.TestCase):
-#     filename = 'test_read_1_bunch.out'
-#
-#     def setUp(self):
-#         test_read = readSDDS(self.filename)
-#         self.parameters, self.columns = test_read.read()
-#
-#     def test_length(self):
-#         self.assertEqual(2, len(self.parameters))
-#         self.assertEqual(2, self.columns.shape[0])
-#
-#     def test_parameters(self):
-#         targets = {'rowCount': 10000,
-#                    'pCentral': 0.14699293165778182,
-#                    'Particles': 10000}
-#
-#         for key, target_value in targets.items():
-#             for page in self.parameters:
-#                 self.assertAlmostEqual(page[key], target_value, delta=1e-8)
+
+class TestMixedData(unittest.TestCase):
+    use_buffer = True
+
+    def setUp(self):
+        self.tests = {
+            'test_1-2': {'filename': 'bunch_5001.sdds',
+                         'columns': [],
+                         'parameters': [],
+                         'column_data': None,
+                         'parameter_data': None}
+        }
+        use_buffer = self.use_buffer
+
+        for testname, test in self.tests.items():
+            filename = test['filename']
+            reader = readSDDS(filename, buffer=use_buffer)
+
+            # Read in columns
+            for col in reader.data['&column']:
+                test['columns'].append(col.fields['name'])
+
+            run_string = 'sdds2stream  -delimiter=" " {filename} -col=' + ','.join(test['columns'])
+            data_pipe = Popen(run_string.format(filename=filename), shell=True, stdout=PIPE, stderr=PIPE)
+            cols, err = data_pipe.communicate()
+            dat = pd.read_csv(StringIO(cols.decode().lstrip()), delim_whitespace=True, names=test['columns'])
+            test['column_data'] = dat
+
+            # Read in parameters
+            for par in reader.data['&parameter']:
+                test['parameters'].append(par.fields['name'])
+
+            run_string = 'sdds2stream  -delimiter=" " {filename} -par=' + ','.join(test['parameters'])
+            data_pipe = Popen(run_string.format(filename=filename), shell=True, stdout=PIPE, stderr=PIPE)
+            pars, err = data_pipe.communicate()
+            dat = pd.read_csv(StringIO(pars.decode().lstrip()), delim_whitespace=True, names=test['parameters'])
+            # Empty strings in SDDS data will be interpreted as NaNs by Pandas
+            dat = dat.replace(np.nan, '', regex=True)
+            test['parameter_data'] = dat
+
+    def test1_columns(self):
+        test = self.tests['test_1-2']
+        filename = test['filename']
+        use_buffer = self.use_buffer
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read2(pages=[0])
+        for name in test['columns']:
+            self.assertTrue(np.all(np.isclose(reader.columns[name].squeeze(),
+                                              test['column_data'][name],
+                                              rtol=1e-6)))
+
+    def test2_parameters(self):
+        test = self.tests['test_1-2']
+        filename = test['filename']
+        use_buffer = self.use_buffer
+        reader = readSDDS(filename, buffer=use_buffer, max_string_length=30)
+        reader.read2(pages=[0])
+        for name in test['parameters']:
+            if reader.parameters[name].dtype.type == np.str_:
+                print(reader.parameters[name], test['parameter_data'][name][0])
+                self.assertTrue(reader.parameters[name] == test['parameter_data'][name][0])
+            else:
+                self.assertTrue(np.all(np.isclose(reader.parameters[name].squeeze(),
+                                                  test['parameter_data'][name],
+                                                  rtol=1e-6)))
