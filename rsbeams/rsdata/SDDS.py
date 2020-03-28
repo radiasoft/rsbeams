@@ -237,7 +237,7 @@ class readSDDS:
         - Files that store string data in columns are not currently supported
     """
 
-    def __init__(self, input_file, verbose=False, buffer=True, max_string_length=25):
+    def __init__(self, input_file, verbose=False, buffer=True, max_string_length=100):
         """
         Initialize the read in.
 
@@ -252,8 +252,6 @@ class readSDDS:
             read times in some cases but only if the file is not on the order of available system memory.
         max_string_length: Int
             Upper bound on strings that can be read in. Should be at least as large as the biggest string in the file.
-            Only used for formatting read from ASCII files. For binary files the string size is determined dynamically
-            during the file read.
         """
         # TODO: Clean up unused attributes at the end
         self._input_file = input_file
