@@ -35,25 +35,21 @@ class readSDDS:
         - Files that store string data in columns are not currently supported
     """
 
-    def __init__(self, input_file, verbose=False, buffer=True, max_string_length=100):
+    def __init__(self, input_file, buffer=True, max_string_length=100):
         """
         Initialize the read in.
 
         Parameters
         ----------
         input_file: str
-            Name of binary SDDS file to read.
-        verbose: Boolean
-            Print additional data about detailing intermediate read in process.
+            Name of an SDDS file to read.
         buffer: Boolean
             If true then the file is entered into memory and closed before data is read. This may result in faster
             read times in some cases but only if the file is not on the order of available system memory.
         max_string_length: Int
             Upper bound on strings that can be read in. Should be at least as large as the biggest string in the file.
         """
-        # TODO: Clean up unused attributes at the end
-        self._input_file = input_file
-        self.verbose = verbose
+
         self.buffer = buffer
         self.openf = open(input_file, 'rb')
         self.position = 0
@@ -62,20 +58,13 @@ class readSDDS:
         self.header = []
         self._variable_length_records = False
         self._data_mode = None
-
-        self.param_key = ['=i']  # Include row count with parameters
-        self.column_key = '='
         self.header_end_pointer = 0  #
         self._header_line_count = 1
 
         self._parameter_keys = []
-        self.param_size = 0
-        self.param_names = ['rowCount']
         self.parameters = None
 
         self._column_keys = []
-        self.column_size = 0
-        self.column_names = {}
         self.columns = None
 
         self._array_keys = []
@@ -188,8 +177,7 @@ class readSDDS:
         return self.data
 
     def _initialize_data_arrays(self):
-        # TODO: the row count will must always be created in binary mode, even if there are no other parameters
-        for name in sdds_namelists[3:]:  # TODO: I have using the order of the list to do this. Just test if the proper method is there.
+        for name in sdds_namelists[3:]:
             getattr(self, '_compose_'+name[1:]+'_datatypes')()
             if len(getattr(self, '_'+name[1:]+'_keys')) > 0:
                 setattr(self, name[1:]+'s', StructData(getattr(self, '_'+name[1:]+'_keys'), self.max_string_length))
@@ -278,7 +266,6 @@ class readSDDS:
         return count
 
     def _get_position(self, parameter_size, column_size, page):
-        # TODO: Pages indexed to 0
         if self.buffer:
             position = (parameter_size + column_size) * page + self.header_end_pointer + self.position
         else:
@@ -328,7 +315,20 @@ class readSDDS:
                 else:
                     line_count += 1
 
-    def read2(self, pages=None):
+    def read(self, pages=None):
+        """
+        Reads all data types stored in the loaded SDDS file.
+        Data is stored by field type (parameter, column, array) as attributes of readSDDS.
+
+        Args:
+            pages: If None then all pages are read. Otherwise should be an iterable object specifying
+            the page numbers to be read, indexed to 0.
+
+            e.g. pages=[0, 4, 9, 10]
+
+        Returns:
+
+        """
         # Always start after the header
         if not self.buffer:
             self.openf.seek(self.header_end_pointer)
@@ -384,7 +384,6 @@ class readSDDS:
 
     def _get_parameter_data(self, data_keys, position):
         data_arrays = [[]]
-        # TODO: The variable record lengths portion has not actually been tested yet
         for dk in data_keys:
             if self._variable_length_records:
                 try:

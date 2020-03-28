@@ -280,35 +280,35 @@ class TestParameterRead(unittest.TestCase):
         filename = 'elegant_final.fin'
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2()
+        reader.read()
         print(reader.parameters)
 
     def test2(self):
         filename = 'elegant_final_ascii.fin'
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2()
+        reader.read()
         print(reader.parameters)
 
     def test3(self):
         filename = 'elegant_final.fin'
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2(pages=[5, 10])
+        reader.read(pages=[5, 10])
         print(reader.parameters)
 
     def test4(self):
         filename = 'elegant_final.fin'
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2()
+        reader.read()
         print(reader.parameters)
 
     def test5(self):
         filename = 'elegant_final_ascii.fin'
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2()
+        reader.read()
         print(reader.parameters)
 
 
@@ -341,7 +341,7 @@ class TestColumnRead(unittest.TestCase):
         filename = test['filename']
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2(pages=[0])
+        reader.read(pages=[0])
         for name in test['columns']:
             self.assertTrue(np.all(np.isclose(reader.columns[name].squeeze(),
                                               test['data'][name],
@@ -352,7 +352,7 @@ class TestColumnRead(unittest.TestCase):
         filename = test['filename']
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2(pages=[0])
+        reader.read(pages=[0])
         for name in test['columns']:
             if reader.columns[name].dtype.type == np.str_:
                 pass
@@ -368,7 +368,7 @@ class TestColumnRead(unittest.TestCase):
         cols = [0, 1]
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2(pages=cols)
+        reader.read(pages=cols)
         print(reader.columns.shape)
         for name in test['columns']:
             for col in cols:
@@ -384,7 +384,7 @@ class TestColumnRead(unittest.TestCase):
         print(reader._variable_length_records)
         # print(reader.openf.readline())
         # print(reader.openf.readline())
-        reader.read2()
+        reader.read()
         print(reader.columns)
         # print('Counts?', reader.data['&data'][0].fields['no_row_counts'])
         # print(reader.columns.shape)
@@ -434,7 +434,7 @@ class TestMixedData(unittest.TestCase):
         filename = test['filename']
         use_buffer = self.use_buffer
         reader = readSDDS(filename, buffer=use_buffer)
-        reader.read2(pages=[0])
+        reader.read(pages=[0])
         for name in test['columns']:
             self.assertTrue(np.all(np.isclose(reader.columns[name].squeeze(),
                                               test['column_data'][name],
@@ -445,10 +445,9 @@ class TestMixedData(unittest.TestCase):
         filename = test['filename']
         use_buffer = self.use_buffer
         reader = readSDDS(filename, buffer=use_buffer, max_string_length=30)
-        reader.read2(pages=[0])
+        reader.read(pages=[0])
         for name in test['parameters']:
             if reader.parameters[name].dtype.type == np.str_:
-                print(reader.parameters[name], test['parameter_data'][name][0])
                 self.assertTrue(reader.parameters[name] == test['parameter_data'][name][0])
             else:
                 self.assertTrue(np.all(np.isclose(reader.parameters[name].squeeze(),
