@@ -208,7 +208,8 @@ class StructData:
             new_array = np.empty(1, dtype=self.data_type)
             for arr in data:
                 names = [n for n in arr.dtype.names if n != 'record_length']
-                new_array[names] = arr[names]
+                if names:
+                    new_array[names] = arr[names]
             return new_array
 
     def _check_type(self, data): #Next: Need to look at adjusting string size each time up to maximum? Probably just don't merge'
@@ -591,8 +592,8 @@ class readSDDS:
         for dk in data_keys:
             if self._variable_length_records:
                 try:
-                    record_length = data_arrays[1][-1]['record_length']
-                    dk = (dk[0][0], dk[0][1].format(record_length[0]))
+                    record_length = data_arrays[0][-1]['record_length']
+                    dk = [(dk[0][0], dk[0][1].format(record_length[0]))]
                 except (ValueError, IndexError):
                     pass
             if self.data['&data'][0].fields['mode'] == 'ascii':
