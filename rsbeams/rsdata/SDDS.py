@@ -348,6 +348,11 @@ class readSDDS:
         else:
             position = 0 + self._header_line_count * self.buffer
 
+        for i, par in enumerate(self._parameter_keys):
+            if par[0][0] == 'row_counts':
+                rc_index = i
+                break
+
         for page in pages:
             if not isinstance(user_pages, GeneratorType) and page > np.max(user_pages):
                 print(page, user_pages)
@@ -369,7 +374,7 @@ class readSDDS:
             if len(self.data['&column']) == 0:
                 row_count = 0
             elif not self.data['&data'][0].fields['no_row_counts']:
-                row_count = self.parameters['row_counts'][-1][-1]
+                row_count = parameter_data[rc_index][0][0][0]
             else:
                 row_count = self._get_ascii_row_count(position)
 
@@ -377,10 +382,14 @@ class readSDDS:
                 continue
             if (isinstance(user_pages, GeneratorType) or (page in user_pages)) or self._variable_length_records:
                 column_data, position = self._get_column_data(self._column_keys, position, row_count)
-                self._columns.add(column_data, extend=True)
+                self._columns.add(column_data)
             else:
                 # still need to update position what would have been read
                 position += np.dtype(self._column_keys[0]).itemsize * row_count
+        if self._parameters:
+            self._parameters.concat()
+        if self._columns:
+            self._columns.concat()
 
     def _get_parameter_data(self, data_keys, position):
         data_arrays = [[]]

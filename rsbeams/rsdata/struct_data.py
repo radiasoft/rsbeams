@@ -4,6 +4,7 @@ import numpy as np
 class StructData:
     def __init__(self, data_type, max_string_length):
         self.data = None
+        self._data = []
         self.max_string_length = max_string_length
         self.data_type = data_type
         self._oldarray = False
@@ -27,7 +28,7 @@ class StructData:
         else:
             self._data_type = data_type
 
-    def add(self, data, extend=False):
+    def add(self, data):
         data_hold = None
         # Stack page data data together
         for datum in data:
@@ -37,25 +38,11 @@ class StructData:
                 data_hold = datum
             else:
                 data_hold = np.concatenate([data_hold, datum])
-        # If this isn't the first page then extend array down axis 1
-        if self.data is None:
-            # Data is reshaped for parameter setup
-            # if data is fed into columns the extra dimension will be quashed
-            self.data = data_hold.reshape(-1, 1)
-        elif extend:
-            # If
-            if len(self.data.shape) == 1:
-                self.data = np.array([self.data.flatten(), data_hold])
-            # Add a new page for columns
-            elif self.data.shape[1] == 1:
-                self.data = np.array([self.data.flatten(), data_hold])
-            else:
-                data_hold = data_hold.reshape(-1, 1)
-                self.data = np.array(list(self.data) + [data_hold.flatten()])
-        else:
-            # Add a new page for rows
-            self.data = np.concatenate([self.data.reshape(-1, 1),
-                                        data_hold.reshape(-1, 1)], axis=0)
+
+        self._data.append(data_hold)
+
+    def concat(self):
+        self.data = np.array(self._data)
 
     def _merge(self, data):
         if len(data) == 1:
