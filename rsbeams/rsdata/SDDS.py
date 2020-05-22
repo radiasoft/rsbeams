@@ -29,10 +29,7 @@ class readSDDS:
 
     Caveats:
         - System is assumed little-endian
-        - Data stored in binary
         - No array data (only parameters and columns)
-        - Strings stored as fixed are not included in parameters (strings stored in binary format are included)
-        - Files that store string data in columns are not currently supported
     """
 
     def __init__(self, input_file, buffer=True, max_string_length=100):
@@ -348,6 +345,7 @@ class readSDDS:
         else:
             position = 0 + self._header_line_count * self.buffer
 
+        # TODO: Make this a function that checks if should be called
         for i, par in enumerate(self._parameter_keys):
             if par[0][0] == 'row_counts':
                 rc_index = i
