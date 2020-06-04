@@ -1,7 +1,7 @@
 from .Element import Element
 from sympy import symbols, cosh, sinh, sqrt, lambdify
 from sympy.matrices import Matrix
-import yaml
+from ruamel import yaml
 
 
 class StructuredBeamline(object):
@@ -22,12 +22,13 @@ class StructuredBeamline(object):
                          [0, 0, 0, 1]))
     }
 
+
     def __init__(self, name):
         self.name = name
+        self.elements = {}
         self.sequence = []
         self._length = self._get_length
         self._top = self  # Top level beamline if any
-        self.elements = {} 
 
     @property
     def length(self):
@@ -73,7 +74,6 @@ class StructuredBeamline(object):
             self.sequence[-1]._top = self
 
     def save_beamline(self, filename):
-        # TODO: make top level be beamline name. Will need to change load structure.
         """
         WARNING: This will only work correctly on Python 3
 

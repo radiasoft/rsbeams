@@ -323,7 +323,7 @@ class BeamlineParser(object):
         if end < 0:
             return -1
 
-        return line[0:end]
+        return line[0:end].strip('"')
 
 
 def parse_rpn(expression):
@@ -342,8 +342,9 @@ def parse_rpn(expression):
         # Sanitize string
         val = val.replace('"', '')
         val = val.replace('\'', '')
+        val = val.replace('pi', str(np.pi))
         val = val.strip()
-        # TODO: Could I use a dictionary to hold operators and their code operation to get ride of if/elif
+        # TODO: use a dictionary to hold operators and their code operation to get rid of this
         if val in ['-', '+', '*', '/', 'mult']:
             token1 = stack.pop()
             token2 = stack.pop()

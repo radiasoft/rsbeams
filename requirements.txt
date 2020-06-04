@@ -1,5 +1,4 @@
 pykern
-seaborn
 pathos
 numpy>=1.17
 scipy
