@@ -10,6 +10,14 @@ setup(
     name='rsbeams',
     author='RadiaSoft LLC',
     author_email='pip@radiasoft.net',
+    install_requires=[
+        'pykern',
+        'pathos',
+        'numpy>=1.17',
+        'scipy',
+        'sympy>=1.2',
+        'ruamel.yaml'
+    ],
     description='Code-agnostic Python utilities for particle beam simulations',
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     url='https://github.com/radiasoft/rsbeams',
