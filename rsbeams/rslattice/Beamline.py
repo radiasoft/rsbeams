@@ -2,6 +2,14 @@ from .Element import Element
 from sympy import symbols, cosh, sinh, sqrt, lambdify
 from sympy.matrices import Matrix
 from ruamel import yaml
+from collections import UserList
+
+# TODO: Have StructuredBeamline inherit from UserList and remove the sequence attribute and just use self
+#    This may break the current self._top?
+# TODO: Remove the subline option for add_element. Add an option to specify a Beamline name now that we have
+#    the lines attribute to record them
+# class Sequence(UserList):
+#     def append(self, item: _T) -> None:
 
 
 class StructuredBeamline(object):
@@ -22,10 +30,10 @@ class StructuredBeamline(object):
                          [0, 0, 0, 1]))
     }
 
-
     def __init__(self, name):
         self.name = name
         self.elements = {}
+        self.lines = {}
         self.sequence = []
         self._length = self._get_length
         self._top = self  # Top level beamline if any
@@ -67,7 +75,12 @@ class StructuredBeamline(object):
             self.sequence.append(the_element)
 
     def add_beamline(self, name):
-        self.sequence.append(StructuredBeamline(name))
+        if name in self.lines.keys():
+            print(f'Beamline {name} already exists. Inserting copy.')
+            self.sequence.append(self.lines[name])
+        else:
+            self.lines[name] = StructuredBeamline(name)
+            self.sequence.append(self.lines[name])
         if self._top:
             self.sequence[-1]._top = self._top
         else:
@@ -96,7 +109,7 @@ class StructuredBeamline(object):
         with open(filename, 'w') as outputfile:
             yaml.dump(beamline, outputfile, default_flow_style=False, Dumper=yaml.RoundTripDumper)
 
-    def load_beamline(self, filename):
+    def load_beamline(self, filename, code):
         if len(self.sequence) != 0:
             print("Cannot load a new beamline.\nThis StructuredBeamline is not empty.")
             return
@@ -106,8 +119,8 @@ class StructuredBeamline(object):
             for element in elements:
                 if isinstance(element, dict):
                     beamline.add_element(element['name'], element['type'],
-                                     {k: v for k, v in element.items()
-                                      if (k != 'type') and (k != 'name')})
+                                         {k: v for k, v in element.items()
+                                         if (k != 'type') and (k != 'name')})
                 else:
                     self.add_beamline(name=None)
                     create_beamline(element, self.sequence[-1])
