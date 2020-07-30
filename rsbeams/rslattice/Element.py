@@ -1,35 +1,40 @@
-defined_elements = {
-    'drift': ['l'],
-    'edrift': ['l'],
-    'quadrupole': ['l', 'k1'],
-    'kquadrupole': ['l', 'k1'],
-    'solenoid': ['None'],
-    'kquad': ['l', 'k1'],
-    'edge': ['None'],
-    'sbend': ['l', 'angle', 'e1', 'e2', 'hgap', 'fint'],
-    'csbend': ['l', 'angle', 'e1', 'e2'],
-    'csrcsbend': ['l', 'angle', 'e1', 'e2'],
-    'csrdrift': ['L'],
-    'rfca': ['l', 'volt', 'frequency', 'phase', 'h'],
-    'ecol': ['None'],
-    'sextupole': ['None'],
-    'marker': ['None'],
-    'bumper': ['None'],
-    'maxamp': ['None'],
-    'watch': ['None'],
-    'scraper': ['None'],
-    'pfilter': ['None'],
-    'kicker': ['None'],
-    'vkicker': ['None'],
-    'hkicker': ['None'],
-    'monitor': ['None'],  # Apparently, even though elegant's manual calls these 'moni', 'hmon', and 'vmon'
-    'hmonitor': ['None'],  # internally they have the full word 'monitor' in their name...
-    'vmonitor': ['None'],
-    'twiss': ['None'],
-    'wake': ['None'],
-    'malign': ['None'],
-    'charge': ['None'],
-    'ibscatter': ['None']}
+# TODO: No longer going to check against a defined_elements list
+#  Need an object that links like element types between codes when a StructuredBeamline
+#  is dumped back to file for another code to interpret
+
+# TODO: Keeping until above is implemented
+# defined_elements = {
+#     'drift': ['l'],
+#     'edrift': ['l'],
+#     'quadrupole': ['l', 'k1'],
+#     'kquadrupole': ['l', 'k1'],
+#     'solenoid': ['None'],
+#     'kquad': ['l', 'k1'],
+#     'edge': ['None'],
+#     'sbend': ['l', 'angle', 'e1', 'e2', 'hgap', 'fint'],
+#     'csbend': ['l', 'angle', 'e1', 'e2'],
+#     'csrcsbend': ['l', 'angle', 'e1', 'e2'],
+#     'csrdrift': ['L'],
+#     'rfca': ['l', 'volt', 'frequency', 'phase', 'h'],
+#     'ecol': ['None'],
+#     'sextupole': ['None'],
+#     'marker': ['None'],
+#     'bumper': ['None'],
+#     'maxamp': ['None'],
+#     'watch': ['None'],
+#     'scraper': ['None'],
+#     'pfilter': ['None'],
+#     'kicker': ['None'],
+#     'vkicker': ['None'],
+#     'hkicker': ['None'],
+#     'monitor': ['None'],  # Apparently, even though elegant's manual calls these 'moni', 'hmon', and 'vmon'
+#     'hmonitor': ['None'],  # internally they have the full word 'monitor' in their name...
+#     'vmonitor': ['None'],
+#     'twiss': ['None'],
+#     'wake': ['None'],
+#     'malign': ['None'],
+#     'charge': ['None'],
+#     'ibscatter': ['None']}
 
 
 class AgnosticDict(dict):
@@ -50,7 +55,6 @@ class Element(object):
     Class for holding parameters and attributes of beamline elements as common defined in particle tracking codes.
     Element parameters are not case sensitive.
     """
-    element_types = defined_elements
 
     def __init__(self, element_name, element_type, **kwargs):
         # Element properties
@@ -61,15 +65,6 @@ class Element(object):
 
         # Metadata
         self._beamline = None  # Top level beamline if any
-
-        # Was going to maintain list of excepted parameters
-        # Feature is not working and may just be a bad idea
-        # This check for not just makes sure the element type exists at all
-        try:
-            type_dictionary = self.element_types[self.type]
-        except KeyError:
-            print(self.type)
-            raise
 
         for parameter, value in kwargs.items():
             # Might be nice to check at some point
@@ -115,16 +110,9 @@ class Element(object):
         return length
 
     def _interpret_element(self, name):
-        # TODO: I am leaving out a check for duplicate names on the theory that we are using a valid lte file
-        """
-        elegant seems to allow shortning of element names
-        as long is it is uniquely defined.
+        # This used to verify against a list of elegant elements
+        # We no longer check an element at load, only dump
+        # So now this just performs sanitizing functions
 
-        This method implements that functionality.
-        """
         name = name.lower().strip()
-        for element in self.element_types:
-            if name == element[:len(name)]:
-                return element
-
-        print("COULD NOT FIND:", repr(name))
+        return name
