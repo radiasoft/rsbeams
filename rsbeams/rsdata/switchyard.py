@@ -1,14 +1,20 @@
 # Import the relevant data formats
+# TODO: readers and writers should just be functions
+# TODO: elegant reader can use readSDDS now
+# TODO: wrap species handling after it is instantiated
+# TODO: create centralized record of unit conversions by code
 
 import pandas as pd
 import numpy as np
 import h5py as h5
+import os, re
 from scipy import constants
 from rsbeams.rsptcls.species import Species
 from subprocess import Popen, PIPE
 from rsbeams.rsdata.SDDS import writeSDDS
+from openpmd_viewer import OpenPMDTimeSeries
 
-supported_codes = ['genesis', 'elegant', 'opal']
+supported_codes = ['genesis', 'elegant', 'opal', 'warp']
 
 
 class Switchyard:
@@ -29,7 +35,7 @@ class Switchyard:
         self.species = {}
         assert input_format in self.supported_codes, "{} is not supported".format(input_format)
         self.input_format = input_format
-        self._readers = {'elegant': self.read_elegant, 'opal': self.read_opal}
+        self._readers = {'elegant': self.read_elegant, 'opal': self.read_opal, 'warp': self.read_openpmd}
         self._writers = {'elegant': self.write_elegant, 'genesis': self.write_genesis}
 
         self._get_reader()(file_name=input_file)
@@ -140,6 +146,22 @@ class Switchyard:
         # gamma -- particle gamma
 
         return 0
+
+    def read_openpmd(self, file_name, species_name):
+        # OpenPMDTimeSeries needs a directory and will open all OpenPMD files in that directory
+        directory, fname = os.path.split(file_name)
+        requested_iteration = int(re.search(r"\d+", fname).group())
+
+        ts = OpenPMDTimeSeries(directory)
+        assert requested_iteration in ts.iterations, f"Could not find iteration {requested_iteration}"
+        particle_data = ts.get_particle(var_list=['x', 'y', 'z', 'ux', 'uy', 'uz', 'charge', 'mass', 'w'],
+                                        pecies=species_name, iteration=requested_iteration)
+
+        total_charge = np.sum(particle_data[:, 6] * particle_data[:, 8])
+        self.species[species_name] = Species(particle_data[:, :6],
+                                          charge=particle_data[:, 6],
+                                          mass=particle_data[:, 7], total_charge=total_charge)
+        self.species[species_name].convert_from_openpmd()
     
     def write_elegant(self, file_name, species_name):
         """Write a file to elegant-readable format.
