@@ -81,7 +81,7 @@ ytick.major.pad: 11.2
 #Image Parameters
 #################
 image.cmap: viridis
-image.aspect : equal  
+image.aspect : equal
 
 
 #################
@@ -91,4 +91,3 @@ savefig.dpi         : 300      # figure dots per inch
 savefig.format      : pdf      # png, ps, pdf, svg
 savefig.bbox        : tight # 'tight' or 'standard'.
 savefig.pad_inches  : 0.1      # Padding to be used when bbox is set to 'tight'
-savefig.jpeg_quality: 95       # when a jpeg is saved, the default quality parameter.
