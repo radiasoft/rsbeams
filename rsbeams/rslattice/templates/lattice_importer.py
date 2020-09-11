@@ -20,6 +20,12 @@ def get_schema(code):
     except FileNotFoundError:
         print(f'{code} not supported')
 
+def _replace_rpn_variables(parameter_dict, config):
+    # Check for RPN variable definitions in config and replace with values if present
+    for key, val in parameter_dict.items():
+        if val in config['models']['rpnCache']:
+            parameter_dict[key] = config['models']['rpnCache'][val]
+
 
 def parse_json(sirepo_json, beamline):
     """
@@ -44,7 +50,7 @@ def parse_json(sirepo_json, beamline):
     if not the_beamline:
         raise ValueError(f'{beamline} not found in {sirepo_json}')
 
-    def generate_beamline(items, beamline):
+    def generate_beamline(items, beamline, definition):
         for item in items:
             if abs(item) in beamline_definitions.keys():
                 beamline.add_beamline(beamline_definitions[abs(item)]['name'])
@@ -58,9 +64,10 @@ def parse_json(sirepo_json, beamline):
             else:
                 element = element_defitions[item]
                 element_minus_special = {k: v for k, v in element.items() if k != 'name' and k != 'type'}
+                _replace_rpn_variables(element_minus_special, definition)
                 beamline.add_element(element['name'], element['type'], element_minus_special)
 
     model = StructuredBeamline(the_beamline['name'])
-    generate_beamline(the_beamline['items'], model)
+    generate_beamline(the_beamline['items'], model, definition)
 
     return model
