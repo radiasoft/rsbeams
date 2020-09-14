@@ -37,6 +37,7 @@ class StructuredBeamline(object):
         self.sequence = []
         self._length = self._get_length
         self._top = self  # Top level beamline if any
+        self._verbosity = 1
 
     @property
     def length(self):
@@ -61,7 +62,8 @@ class StructuredBeamline(object):
 
         """
         if element_name in self.elements:
-            print('Element {} already exists. Inserting copy.'.format(element_name))
+            if self._verbosity > 1:
+                print('Element {} already exists. Inserting copy.'.format(element_name))
             the_element = self.elements[element_name]
         else:
             the_element = Element(element_name, element_type, **element_parameters)
