@@ -20,6 +20,12 @@ def get_schema(code):
     except FileNotFoundError:
         print(f'{code} not supported')
 
+def _replace_rpn_variables(parameter_dict, config):
+    # Check for RPN variable definitions in config and replace with values if present
+    for key, val in parameter_dict.items():
+        if val in config['models']['rpnCache']:
+            parameter_dict[key] = config['models']['rpnCache'][val]
+
 
 def _replace_rpn_variables(parameter_dict, config):
     # Check for RPN variable definitions in config and replace with values if present
