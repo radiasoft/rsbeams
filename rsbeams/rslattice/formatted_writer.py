@@ -55,11 +55,16 @@ class WarpWriter:
         self.drift_name = 'Drft'
 
     def write_file(self, filename):
-        contents = ""
+        contents = "import warp as wp\n"
+        line_contents = self.line_template.format(line_name=self.beamline.name)
         elements = self.beamline.get_beamline_elements()
+        
+        # Write element definitions
         for ele in elements:
             name = ele.name.upper()
             ele_type =  ele.type.upper()
+            
+            # Write element definition
             if ele_type in self.mapping.keys() and name not in self.element_names:
                 new_ele_type = self.mapping[ele_type][0]
                 ele_str = self.element_template.format(name=name, type=new_ele_type)
@@ -78,6 +83,11 @@ class WarpWriter:
                 ele_str += self.parameter_template.format(parameter='l', value=length)
 
                 contents += ele_str + ')' + '\n'
+            
+            # Append to line defition
+            line_contents += '{} + '.format(name)
+            
+        contents += line_contents[:-2]  # Cut off trailing '+'
         
         with open(filename, 'w') as ff:
             ff.write(contents)
