@@ -242,7 +242,7 @@ class Converter:
         return beta, 1. / np.sqrt(1 - beta**2)
 
     def start_momentum(self, momentum):
-        normalized_momentum = momentum / (self.mass * c)
+        normalized_momentum = momentum / self.mass
         beta = normalized_momentum / np.sqrt(1 + normalized_momentum**2)
         gamma = 1 / np.sqrt(1 - beta**2)
 
