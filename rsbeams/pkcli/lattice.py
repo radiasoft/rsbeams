@@ -21,14 +21,15 @@ def _get_gradient(k1, energy, mass, n=1):
     gradient = k1 * b_rho**n
     return gradient
 
-def _parameter_conversions(beamline, energy, mass=m_e_mev):
+def _parameter_conversions(beamline, energy, mass=m_e_mev, flip_sign=False):
+    sgn = 1 - 2 * flip_sign
     for ele in beamline.get_beamline_elements():
         if ele.type == 'kquad' or ele.type == 'quad':
-            ele.parameters['db'] = _get_gradient(float(ele.parameters['k1']), energy, mass)
+            ele.parameters['db'] = sgn * _get_gradient(float(ele.parameters['k1']), energy, mass)
         elif ele.type == 'csbend' or ele.type == 'rben' or ele.type == 'csbend':
             ele.parameters['rc'] = float(ele.parameters['l']) / float(ele.parameters['angle'])
         elif ele.type == 'sext':
-            ele.parameters['db'] = _get_gradient(float(ele.parameters['k2']), energy, mass, n=2)
+            ele.parameters['db'] = sgn * _get_gradient(float(ele.parameters['k2']), energy, mass, n=2)
 
 # Public Functions
 
@@ -49,7 +50,7 @@ def elegant_to_warp(input_file_path, output_file_path, beamline_name):
 
 
     beamline = parse_json(sim_dat, beamline_name)
-    _parameter_conversions(beamline=beamline, energy=p_central_mev)
+    _parameter_conversions(beamline=beamline, energy=p_central_mev, flip_sign=True)
     writer = WarpWriter(beamline, input_simulation_type)
     writer.write_file(output_file_path)
     
