@@ -77,7 +77,7 @@ class WarpWriter:
             elif name in self.element_names:
                 continue
             else:
-                print("Element '{name}' with type {type} is not defined".format(name=name, type=ele.type))
+                print("Element '{name}' with type {type} is not defined. Will be added as drift.".format(name=name, type=ele.type))
                 ele_str = self.element_template.format(name=name, type=self.drift_name)
                 length = 0.0 or ele.parameters.get('l')
                 ele_str += self.parameter_template.format(parameter='l', value=length)
