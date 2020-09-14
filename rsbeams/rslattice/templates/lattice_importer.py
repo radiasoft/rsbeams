@@ -66,11 +66,11 @@ def parse_json(sirepo_json, beamline):
                 beamline.add_beamline(beamline_definitions[abs(item)]['name'])
                 if item >= 0:
                     generate_beamline(beamline_definitions[item]['items'],
-                                      beamline.lines[beamline_definitions[item]['name']])
+                                      beamline.lines[beamline_definitions[item]['name']], definition)
                 else:
                     item = abs(item)
                     generate_beamline(beamline_definitions[item]['items'][::-1],
-                                      beamline.lines[beamline_definitions[item]['name']])
+                                      beamline.lines[beamline_definitions[item]['name']], definition)
             else:
                 element = element_defitions[item]
                 element_minus_special = {k: v for k, v in element.items() if k != 'name' and k != 'type'}

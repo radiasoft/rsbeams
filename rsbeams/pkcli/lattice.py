@@ -23,9 +23,9 @@ def _get_gradient(k1, energy, mass, n=1):
 
 def _parameter_conversions(beamline, energy, mass=m_e_mev):
     for ele in beamline.get_beamline_elements():
-        if ele.type == 'kquad':
+        if ele.type == 'kquad' or ele.type == 'quad':
             ele.parameters['db'] = _get_gradient(float(ele.parameters['k1']), energy, mass)
-        elif ele.type == 'csbend' or ele.type == 'rbend' or ele.type == 'csbend':
+        elif ele.type == 'csbend' or ele.type == 'rben' or ele.type == 'csbend':
             ele.parameters['rc'] = float(ele.parameters['l']) / float(ele.parameters['angle'])
         elif ele.type == 'sext':
             ele.parameters['db'] = _get_gradient(float(ele.parameters['k2']), energy, mass, n=2)
@@ -51,6 +51,7 @@ def elegant_to_warp(input_file_path, output_file_path, beamline_name):
 
     beamline = parse_json(sim_dat, beamline_name)
     _parameter_conversions(beamline=beamline, energy=p_central_mev)
-    print('Warning: Conversion does not account for beam momentum changes (e.g. rf cavities, radiation loss, etc.) magnet strengths may be wrong if any of these are present')
     writer = WarpWriter(beamline, input_simulation_type)
     writer.write_file(output_file_path)
+    
+    print('Warning: Conversion does not account for beam momentum changes (e.g. rf cavities, radiation loss, etc.) magnet strengths may be wrong if any of these are present')

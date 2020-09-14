@@ -64,7 +64,10 @@ class WarpWriter:
                 new_ele_type = self.mapping[ele_type][0]
                 ele_str = self.element_template.format(name=name, type=new_ele_type)
                 for par in self.mapping[ele_type][1:]:
-                    ele_str += self.parameter_template.format(parameter=par, value=ele.parameters[par])
+                    try:
+                        ele_str += self.parameter_template.format(parameter=par, value=ele.parameters[par])
+                    except KeyError:
+                        raise KeyError(f'Could not find {par} in element {name} of type {ele_type}')
                 contents += ele_str + ')' +'\n'
             elif name in self.element_names:
                 continue
