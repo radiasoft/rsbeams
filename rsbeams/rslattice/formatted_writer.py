@@ -74,16 +74,22 @@ class WarpWriter:
                     except KeyError:
                         raise KeyError(f'Could not find {par} in element {name} of type {ele_type}')
                 contents += ele_str + ')' +'\n'
+                
+                self.element_names.append(name)
             elif name in self.element_names:
                 continue
             else:
                 print("Element '{name}' with type {type} is not defined. Will be added as drift.".format(name=name, type=ele.type))
                 ele_str = self.element_template.format(name=name, type=self.drift_name)
-                length = 0.0 or ele.parameters.get('l')
+                if ele.parameters.get('l'):
+                    length = ele.parameters.get('l')
+                else:
+                    length = 0.0
                 ele_str += self.parameter_template.format(parameter='l', value=length)
 
                 contents += ele_str + ')' + '\n'
-            
+                
+                self.element_names.append(name)
             # Append to line defition
             line_contents += '{} + '.format(name)
             
