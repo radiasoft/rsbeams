@@ -77,7 +77,7 @@ class WarpWriter:
                 
                 self.element_names.append(name)
             elif name in self.element_names:
-                continue
+                pass
             else:
                 print("Element '{name}' with type {type} is not defined. Will be added as drift.".format(name=name, type=ele.type))
                 ele_str = self.element_template.format(name=name, type=self.drift_name)
