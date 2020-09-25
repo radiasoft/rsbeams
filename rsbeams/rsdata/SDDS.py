@@ -46,7 +46,7 @@ class readSDDS:
         max_string_length: Int
             Upper bound on strings that can be read in. Should be at least as large as the biggest string in the file.
         """
-
+        self.verbose = False
         self.buffer = buffer
         self.openf = open(input_file, 'rb')
         self.position = 0
@@ -157,7 +157,8 @@ class readSDDS:
             try:
                 namelist_data = supported_namelists[namelist_type](namelist)
             except KeyError:
-                print(namelist_type, namelist, 'not parsed')  # TODO: TEMP printout
+                if self.verbose:
+                    print(namelist_type, namelist, 'not parsed')
                 continue
             self.data[namelist_type].append(namelist_data)
 
@@ -354,13 +355,15 @@ class readSDDS:
         for page in pages:
             if not isinstance(user_pages, GeneratorType) and page > np.max(user_pages):
                 print(page, user_pages)
-                print('stopping here')
+                if self.verbose:
+                    print('stopping here')
                 break
 
             if self._check_file_end(position):
                 # TODO: Get the logic right here. Should not trigger unless user requests a bad page.
                 if page in user_pages:
-                    print('Could not read page {}'.format(page))
+                    if self.verbose:
+                        print('Could not read page {}'.format(page))
                 break
 
             # parameters are always read because we need to know if column_rows changes between pages
