@@ -90,7 +90,7 @@ class Converter:
                 assert self.args[key] == 'eV' or self.args[key] == 'SI', "Units must be given as SI or eV"
             declaration = 0
             for key in ['momentum', 'velocity', 'energy', 'kenergy', 'betagamma', 'beta', 'gamma']:
-                if self.args[key]:
+                if self.args[key] is not None:
                     declaration += 1
             assert declaration == 1, "One and only one initial kinematic quantity must be provided"
 
@@ -142,7 +142,7 @@ class Converter:
     def __call__(self, *args, **kwargs):
         # Set beta and gamma based on the input value
         for key, value in self.args.items():
-            if value and key in self.startup:
+            if value is not None and key in self.startup:
                 self.outputs["input"] = value
                 self.outputs["input_type"] = key
                 self.outputs["beta"], self.outputs["gamma"] = self.startup[key](value)
