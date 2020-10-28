@@ -13,7 +13,7 @@ setup(
     install_requires=[
         'pykern',
         'pathos',
-        'numpy>=1.17',
+        'numpy>=1.19.1',
         'scipy',
         'sympy>=1.2',
         'ruamel.yaml'
