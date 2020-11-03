@@ -29,7 +29,7 @@ def read_elegant(file_name, species_name ='Species'):
     read_particle_data.read()
     sdds_data = read_particle_data.columns.squeeze()
     try:
-        charge_data = read_particle_data.parameters['Charge']
+        charge_data = read_particle_data.parameters['Charge'].squeeze()
     except ValueError:
         print(f"No Charge in file {file_name}")
         charge_data = 0.0
