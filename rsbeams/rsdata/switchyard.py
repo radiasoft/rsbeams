@@ -7,7 +7,7 @@ import h5py as h5
 from scipy import constants
 from rsbeams.rsptcls.species import Species
 from subprocess import Popen, PIPE
-from rsbeams.rsdata.SDDS import writeSDDS
+from rsbeams.rsdata.SDDS import writeSDDS, readSDDS
 
 _DEFAULT_SPECIES_NAME = 'species_0'
 
@@ -25,20 +25,18 @@ def read_elegant(file_name, species_name ='Species'):
     # t  -- time of flight, sec
     # p  -- longitudinal momentum, mc
 
-    read_particle_data = 'sdds2stream -col=x,xp,y,yp,t,p {file}'.format(file=file_name)
-    read_charge = 'sdds2stream -par=Charge {file}'.format(file=file_name)
-    get_particle_data = Popen(read_particle_data, stdout=PIPE, stderr=PIPE, shell=True)
-    get_charge_data = Popen(read_charge, stdout=PIPE, stderr=PIPE, shell=True)
-    particle_data, err = get_particle_data.communicate()
-    if err:
-        return err
-    else:
-        particle_data = np.fromstring(particle_data, dtype=float, count=-1, sep=' \n').reshape(-1, 6)
-    charge_data, err = get_charge_data.communicate()
-    if err:
-        return err
-    else:
-        charge_data = np.fromstring(charge_data, dtype=float, count=1, sep=' \n')[0]
+    read_particle_data = readSDDS(file_name)
+    read_particle_data.read()
+    sdds_data = read_particle_data.columns.squeeze()
+    try:
+        charge_data = read_particle_data.parameters['Charge']
+    except ValueError:
+        print(f"No Charge in file {file_name}")
+        charge_data = 0.0
+
+    particle_data = np.zeros([sdds_data.size, 6])
+    for i, col in enumerate(['x', 'xp', 'y', 'yp', 't', 'p']):
+        particle_data[:, i] = sdds_data[col][:]
 
     # Coordinate conversions
     particle_data[:, 1] *= particle_data[:, 5]
