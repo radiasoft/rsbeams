@@ -139,7 +139,7 @@ class Converter:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev / ev_per_kg
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, silent=False, **kwargs):
         # Set beta and gamma based on the input value
         for key, value in self.args.items():
             if value is not None and key in self.startup:
@@ -180,8 +180,9 @@ class Converter:
         """
         if self.args['output_unit'] == 'SI':
             self._unit_convert(input_unit='eV', input_dict=self.outputs)
-
-        print(print_string.format(**self.outputs))
+        
+        if not silent:
+            print(print_string.format(**self.outputs))
 
         return self.outputs
 
