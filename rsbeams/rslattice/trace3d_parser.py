@@ -33,13 +33,13 @@ class BeamlineParser(object):
         except IOError:
             print("File could not be read")
 
-        self._sanitize_lattice_definition()
 
     def __call__(self):
         """
         Runs parser for set beamline and returns StructuredBeamline object
         :return:
         """
+        self._sanitize_lattice_definition()
         self.find_beamlines()
         self.parse_set_beamline()
 
@@ -193,7 +193,7 @@ class Trace3d(BeamlineParser):
             parameters = self.get_element_parameters(line, type)
             self._convert_units(parameters)
             try:
-                self.handlers[type](name, parameters, self.beamline)
+                getattr(self, self.handlers[type])(name, parameters, self.beamline)
             except KeyError:
                 self.beamline.add_element(str(name), self.classifiers[type], parameters)
             self._standardize()  # TODO: Change this to handler
@@ -316,10 +316,10 @@ class TraceWin(Trace3d):
 
 
     handlers = {
-        'dtl_cel': handle_dtl_cell.__func__,
-        'freq': handle_freq.__func__,
-        'ncells': handle_ncells.__func__,
-        'field_map': handle_field_map.__func__
+        'dtl_cel': 'handle_dtl_cell',
+        'freq': 'handle_freq',
+        'ncells': 'handle_ncells',
+        'field_map': 'handle_field_map'
     }
 
     def __init__(self, filename, beamline_name):
