@@ -88,6 +88,7 @@ class TestHeaderParse(unittest.TestCase):
 
     def test_header2(self):
         reader = object.__new__(readSDDS)
+        reader.verbose = False
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []
         reader.buffer = False
@@ -105,6 +106,7 @@ class TestHeaderParse(unittest.TestCase):
 
     def test_header4(self):
         reader = object.__new__(readSDDS)
+        reader.verbose = False
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []
         reader.buffer = False
@@ -158,6 +160,7 @@ class TestColumnCompose(unittest.TestCase):
 
     def test_header2(self):
         reader = object.__new__(readSDDS)
+        reader.verbose = True
         reader.openf = open('header2.sdds', 'rb')
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []
@@ -209,6 +212,7 @@ class TestParameterCompose(unittest.TestCase):
 
     def test_header4(self):
         reader = object.__new__(readSDDS)
+        reader.verbose = False
         reader.openf = open('header4.sdds', 'rb')
         reader.data = {key: [] for key in supported_namelists.keys()}
         reader.header = []

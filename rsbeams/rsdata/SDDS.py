@@ -124,17 +124,22 @@ class readSDDS:
                 while '&end' not in new_line:
                     # Proceed reading lines until the namelist is entirely read
                     if new_line[0] == '!':
+                        self._header_line_count += 1
                         continue
                     new_line = _read_line(self.openf)
                     namelist.append(new_line)
+                    self._header_line_count += 1
                 self.header.append(''.join(namelist))
             elif new_line.find('&data') == 0:
                 # Final entry in the header is always &data
                 namelist.append(new_line)
                 while '&end' not in new_line:
                     if new_line[0] == '!':
+                        self._header_line_count += 1
                         continue
                     new_line = _read_line(self.openf)
+                    namelist.append(new_line)
+                    self._header_line_count += 1
                 self.header.append(''.join(namelist))
                 break
             else:
@@ -403,7 +408,7 @@ class readSDDS:
                     pass
             if self.data['&data'][0].fields['mode'] == 'ascii':
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
-                                               comments='!', deletechars='', unpack=True)
+                                               comments='!', deletechars='', unpack=True, delimiter='\n\t')
                 if self.buffer:
                     position += 1
             else:
@@ -447,7 +452,7 @@ class readSDDS:
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=row_count,
                                                comments='!', deletechars='')
                 if self.buffer:
-                    position += 1 * (row_count + 1 * int(self.data['&data'][0].fields['no_row_counts']))
+                    position += 1 * ((0 if not row_count else row_count) + 1 * int(self.data['&data'][0].fields['no_row_counts']))
             else:
                 new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
                 if self.buffer:

@@ -86,4 +86,5 @@ class Associate(Datum):
 
 
 # Available namelists from SDDS standard
-supported_namelists = {'&parameter': Parameter, '&column': Column, '&data': Data, '&array': Array, '&associate': Associate}
+supported_namelists = {'&parameter': Parameter, '&column': Column,
+                       '&data': Data, '&array': Array, '&associate': Associate}
