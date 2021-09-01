@@ -1,4 +1,5 @@
 import unittest
+import os
 import pandas as pd
 from io import StringIO
 import numpy as np
@@ -6,6 +7,7 @@ from subprocess import Popen, PIPE
 from rsbeams.rsdata.SDDS import readSDDS, supported_namelists
 from headers import header1, header2, header3, header4
 
+RESOURCE_DIR = 'test_resources'
 
 class TestHeaderRead(unittest.TestCase):
 
@@ -240,7 +242,7 @@ class TestFirstPageParameterRead(unittest.TestCase):
     # Additional dependencies
 
     def test1(self):
-        filename = 'file1.sdds'
+        filename = os.path.join(RESOURCE_DIR, 'file1.sdds')
         reader = readSDDS(filename, buffer=False)
         # Perform set from `read`
         position = 0
@@ -248,7 +250,7 @@ class TestFirstPageParameterRead(unittest.TestCase):
         print(arr)
 
     def test2(self):
-        filename = 'elegant_final.fin'
+        filename = os.path.join(RESOURCE_DIR, 'elegant_final.fin')
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
         reader._compose_parameter_datatypes()
@@ -263,7 +265,7 @@ class TestFirstPageParameterRead(unittest.TestCase):
         print(arr)
 
     def test3(self):
-        filename = 'elegant_final.fin'
+        filename = os.path.join(RESOURCE_DIR, 'elegant_final.fin')
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
         reader._compose_parameter_datatypes()
@@ -281,35 +283,35 @@ class TestFirstPageParameterRead(unittest.TestCase):
 class TestParameterRead(unittest.TestCase):
 
     def test1(self):
-        filename = 'elegant_final.fin'
+        filename = os.path.join(RESOURCE_DIR, 'elegant_final.fin')
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read()
         print(reader.parameters)
 
     def test2(self):
-        filename = 'elegant_final_ascii.fin'
+        filename = os.path.join(RESOURCE_DIR, 'elegant_final_ascii.fin')
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read()
         print(reader.parameters)
 
     def test3(self):
-        filename = 'elegant_final.fin'
+        filename = os.path.join(RESOURCE_DIR, 'elegant_final.fin')
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read(pages=[5, 10])
         print(reader.parameters)
 
     def test4(self):
-        filename = 'elegant_final.fin'
+        filename = os.path.join(RESOURCE_DIR, 'elegant_final.fin')
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read()
         print(reader.parameters)
 
     def test5(self):
-        filename = 'elegant_final_ascii.fin'
+        filename = os.path.join(RESOURCE_DIR, 'elegant_final_ascii.fin')
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
         reader.read()
@@ -320,12 +322,12 @@ class TestColumnRead(unittest.TestCase):
 
     def setUp(self):
         self.tests = {
-            'test1': {'filename': 'linear_dipole_20_nopar_nostr.sig',
+            'test1': {'filename': os.path.join(RESOURCE_DIR, 'linear_dipole_20_nopar_nostr.sig'),
                       'columns': [],
                       'data': None},
-            'test2': {'filename': 'linear_dipole_20_nopar.sig',
+            'test2': {'filename': os.path.join(RESOURCE_DIR, 'linear_dipole_20_nopar.sig'),
                       'columns': []},
-            'test3': {'filename': 'exit_2pages.w0',
+            'test3': {'filename': os.path.join(RESOURCE_DIR, 'exit_2pages.w0'),
                       'columns': []}
         }
         use_buffer = True
@@ -381,7 +383,7 @@ class TestColumnRead(unittest.TestCase):
                                                   rtol=1e-6)))
 
     def test4(self):
-        filename = 'error_5.txt'
+        filename = os.path.join(RESOURCE_DIR, 'error_5.txt')
         # cols = [0, 1]
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
@@ -394,7 +396,7 @@ class TestColumnRead(unittest.TestCase):
         # print(reader.columns.shape)
 
     def test5(self):
-        filename = 'jspec.sdds'
+        filename = os.path.join(RESOURCE_DIR, 'jspec.sdds')
         # cols = [0, 1]
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
@@ -412,7 +414,7 @@ class TestMixedData(unittest.TestCase):
 
     def setUp(self):
         self.tests = {
-            'test_1-2': {'filename': 'bunch_5001.sdds',
+            'test_1-2': {'filename': os.path.join(RESOURCE_DIR, 'bunch_5001.sdds'),
                          'columns': [],
                          'parameters': [],
                          'column_data': None,
