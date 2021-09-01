@@ -1,0 +1,12 @@
+SDDS1
+!# little-endian
+&parameter name=par1, type=double, &end
+&parameter name=par2, type=long, &end
+&column name=col1, type=double,  &end
+&column name=col2, type=double, units="m", symbol="&n", description="A test description",  &end
+&data mode=ascii, &end
+2342.452
+42
+2
+1.238919999999999908e-03 1.352520000000000095e+02
+5.245219999999999709e+04 5.245220000000000000e+08
