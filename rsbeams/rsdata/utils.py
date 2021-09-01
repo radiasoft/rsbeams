@@ -40,3 +40,16 @@ def iter_always():
     while True:
         yield i
         i += 1
+
+
+def get_entry_from_parameters(parameters, entry, raise_error=True):
+    start_index = 0  # parameters always returned inside of a list
+    parameters = parameters[start_index]
+    for param in parameters:
+        if param.dtype.names[0] == entry:
+            return param[entry].reshape(-1)[0]
+    if raise_error:
+        raise KeyError(f'{entry} was not found in parameter list')
+    return None
+
+

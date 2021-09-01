@@ -325,7 +325,7 @@ class TestColumnRead(unittest.TestCase):
                       'data': None},
             'test2': {'filename': 'linear_dipole_20_nopar.sig',
                       'columns': []},
-            'test3': {'filename': 'exit.w0',
+            'test3': {'filename': 'exit_2pages.w0',
                       'columns': []}
         }
         use_buffer = True
@@ -368,7 +368,7 @@ class TestColumnRead(unittest.TestCase):
     def test3(self):
         test = self.tests['test3']
         filename = test['filename']
-        page_length = test['data'].count()[0] // 20
+        page_length = test['data'].count()[0] // 2
         cols = [0, 1]
         use_buffer = True
         reader = readSDDS(filename, buffer=use_buffer)
@@ -382,6 +382,19 @@ class TestColumnRead(unittest.TestCase):
 
     def test4(self):
         filename = 'error_5.txt'
+        # cols = [0, 1]
+        use_buffer = False
+        reader = readSDDS(filename, buffer=use_buffer)
+        print(reader._variable_length_records)
+        # print(reader.openf.readline())
+        # print(reader.openf.readline())
+        reader.read()
+        print(reader.columns)
+        # print('Counts?', reader.data['&data'][0].fields['no_row_counts'])
+        # print(reader.columns.shape)
+
+    def test5(self):
+        filename = 'jspec.sdds'
         # cols = [0, 1]
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)

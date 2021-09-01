@@ -3,7 +3,7 @@ import numpy as np
 from struct import pack
 from sys import byteorder
 from types import GeneratorType
-from .utils import data_types, _read_line, iter_always
+from rsbeams.rsdata import utils
 from .datatypes import supported_namelists
 from .struct_data import StructData
 # TODO: Would be nice to refactor the old camel case convention variables
@@ -109,14 +109,14 @@ class readSDDS:
         """
         Read in ASCII data of the header to string and organize.
         """
-        if _read_line(self.openf).find('SDDS1') < 0:
+        if utils._read_line(self.openf).find('SDDS1') < 0:
             # First line must identify as SDDS file
             raise Exception("Header cannot be read")
         # TODO: Need a catch for &include here to at least one level of nesting
         self._header_line_count = 1
         while True:
             namelist = []
-            new_line = _read_line(self.openf)
+            new_line = utils._read_line(self.openf)
             self._header_line_count += 1
             if np.any([nl in new_line for nl in sdds_namelists]):
                 # Log entries that describe data
@@ -126,7 +126,7 @@ class readSDDS:
                     if new_line[0] == '!':
                         self._header_line_count += 1
                         continue
-                    new_line = _read_line(self.openf)
+                    new_line = utils._read_line(self.openf)
                     namelist.append(new_line)
                     self._header_line_count += 1
                 self.header.append(''.join(namelist))
@@ -137,7 +137,7 @@ class readSDDS:
                     if new_line[0] == '!':
                         self._header_line_count += 1
                         continue
-                    new_line = _read_line(self.openf)
+                    new_line = utils._read_line(self.openf)
                     namelist.append(new_line)
                     self._header_line_count += 1
                 self.header.append(''.join(namelist))
@@ -240,10 +240,10 @@ class readSDDS:
 
         if self._data_mode == 'binary':
             # Binary always has count and it is before listed parameters start
-            self._parameter_keys.insert(0, [('row_counts', data_types['long'])])
+            self._parameter_keys.insert(0, [('row_counts', utils.data_types['long'])])
         elif not self.data['&data'][0].fields['no_row_counts'] and len(self.data['&column']) > 0:
             # ASCII: count may not be included and will be at the end of the parameters
-            self._parameter_keys.append([('row_counts', data_types['long'])])
+            self._parameter_keys.append([('row_counts', utils.data_types['long'])])
         else:
             if len(self._parameter_keys[0]) == 0:
                 # Need empty checks to succeed
@@ -342,8 +342,8 @@ class readSDDS:
         if pages:
             user_pages = pages
         else:
-            user_pages = iter_always()
-        pages = iter_always()
+            user_pages = utils.iter_always()
+        pages = utils.iter_always()
 
         # Buffer reading has no pointer, you always start at the beginning so we need to move the start offset
         if self._data_mode == 'binary':
@@ -380,7 +380,7 @@ class readSDDS:
             if len(self.data['&column']) == 0:
                 row_count = 0
             elif not self.data['&data'][0].fields['no_row_counts']:
-                row_count = parameter_data[rc_index][0][0][0]
+                row_count = utils.get_entry_from_parameters(parameter_data, 'row_counts')  #parameter_data[rc_index][0][0][0]
             else:
                 row_count = self._get_ascii_row_count(position)
 
