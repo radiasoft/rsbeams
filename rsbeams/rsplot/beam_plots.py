@@ -50,16 +50,16 @@ def phase_space(sdds, page=0, bins=128, save=None):
     labels = [('x (mm)', 'x\' (mrad)'),
               ('y (mm)', 'y\' (mrad)'),
               ('x (mm)', 'y (mm)'),
-              ('t (ps)', r'\delta ( )')]
+              ('t (ps)', r'$\delta$ ( )')]
 
     sdds_columns = sdds.columns[page]
     sdds_parameters = sdds.parameters[page]
 
-    data = [(sdds_columns['x'] * 1e-3, sdds_columns['xp'] * 1e-3),
-            (sdds_columns['y'] * 1e-3, sdds_columns['yp'] * 1e-3),
-            (sdds_columns['x'] * 1e-3, sdds_columns['y'] * 1e-3),
-            (sdds_columns['t'] - np.average(sdds_columns['t']),
-             np.std(sdds_columns['p']) / np.average(sdds_columns['p']))]
+    data = [(sdds_columns['x'] * 1e3, sdds_columns['xp'] * 1e3),
+            (sdds_columns['y'] * 1e3, sdds_columns['yp'] * 1e3),
+            (sdds_columns['x'] * 1e3, sdds_columns['y'] * 1e3),
+            ((sdds_columns['t'] - np.average(sdds_columns['t'])) * 1e12,
+             (sdds_columns['p'] - np.average(sdds_columns['p'])) / np.average(sdds_columns['p']))]
 
     for ax, datum, label in zip(axes.flatten(), data, labels):
         counts, xbins, ybins = np.histogram2d(*datum, bins=bins)
@@ -156,14 +156,14 @@ def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
 
 
 def horizontal_phase_space(sdds, page=0, save=None):
-    phase_space_projection(sdds, 'x', 'xp', page=page, save=save)
+    phase_space_projection(sdds, 'x', 'xp', x_label='x (mm)', y_label='x\' (mrad)', page=page, save=save)
 
 
 def vertical_phase_space(sdds, page=0, save=None):
-    phase_space_projection(sdds, 'y', 'yp', page=page, save=save)
+    phase_space_projection(sdds, 'y', 'yp', page=page, x_label='y (mm)', y_label='y\' (mrad)', save=save)
 
 
-def phase_space_projection(sdds, coordinate_x, coordinate_y, page=0, save=None):
+def phase_space_projection(sdds, coordinate_x, coordinate_y, x_label='', y_label='', page=0, save=None):
     """
     Plot of the longitudinal phase space with projection plots of current distribution and momentum profile.
     Args:
@@ -192,21 +192,15 @@ def phase_space_projection(sdds, coordinate_x, coordinate_y, page=0, save=None):
               origin='lower',
               aspect='auto')
 
-    ylabel = util.format_symbol(sdds.column_symbol[coordinate_y])
-    ylabel += ' (m' + util.format_symbol(sdds.column_symbol[coordinate_y]) + ')'
-
-    hm.set_ylabel(ylabel)
+    hm.set_ylabel(y_label)
     hm.set_xticklabels([])
 
     mom.plot(y_counts, y_bins)
     mom.set_yticklabels([])
     mom.set_xlabel('Counts ()')
 
-    xlabel = util.format_symbol(sdds.column_symbol[coordinate_x])
-    xlabel += ' (m' + util.format_symbol(sdds.column_symbol[coordinate_x]) + ')'
-
-    tim.plot(x_counts, x_bins)
-    tim.set_xlabel(xlabel)
+    tim.plot(x_bins, x_counts)
+    tim.set_xlabel(x_label)
     tim.set_ylabel('Counts ()')
 
     if save:
