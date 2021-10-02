@@ -16,13 +16,13 @@ def beamline_profile(sdds, page=0, quantities=None, xlim=None, ylim=None, save=N
     ax1.axis('off')
     util.plot_profile(sdds_columns, ax1, height=0.25)
     for quant in quantities:
-        ax2.plot(sdds_columns['s'], sdds_columns[quant], label=util.format_symbol(sdds.column_symbol[quant]))
+        ax2.plot(sdds_columns['s'], sdds_columns[quant], label=util.format_symbol(sdds.column_symbol(quant)))
 
     ax2.legend(fontsize=16)
     ax2.set_xlabel('s (m)', fontsize=16)
 
-    ylabel = ','.join([util.format_symbol(sdds.column_symbol[quant]) for quant in quantities])
-    ylabel += ' (' + ','.join([util.format_symbol(sdds.column_units[quant]) for quant in quantities]) + ')'
+    ylabel = ','.join([util.format_symbol(sdds.column_symbol(quant)) for quant in quantities])
+    ylabel += ' (' + ','.join([util.format_symbol(sdds.column_units(quant)) for quant in quantities]) + ')'
     ax2.set_ylabel(ylabel, fontsize=16)
     if xlim:
         ax2.set_xlim(*xlim)
@@ -76,6 +76,16 @@ def phase_space(sdds, page=0, bins=128, save=None):
     plt.show()
 
 
+def _get_phase_space_figure(xs=12, ys=12):
+    fig = plt.figure(figsize=(xs, ys))
+    gs = fig.add_gridspec(3, 3)
+    hm = fig.add_subplot(gs[:2, :2])
+    mom = fig.add_subplot(gs[:2, -1])
+    tim = fig.add_subplot(gs[-1, :2])
+
+    return fig, gs, hm, mom, tim
+
+
 def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
     """
     Plot of the longitudinal phase space with projection plots of current distribution and momentum profile.
@@ -90,11 +100,7 @@ def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
     Returns:
 
     """
-    fig = plt.figure(figsize=(12, 12))
-    gs = fig.add_gridspec(3, 3)
-    hm = fig.add_subplot(gs[:2, :2])
-    mom = fig.add_subplot(gs[:2, -1])
-    tim = fig.add_subplot(gs[-1, :2])
+    fig, gs, hm, mom, tim = _get_phase_space_figure()
 
     sdds_columns = sdds.columns[page]
     sdds_parameters = sdds.parameters[page]
@@ -142,6 +148,66 @@ def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
     tim.plot(time_bins * time_scale, current_counts)
     tim.set_xlabel('t (ps)')
     tim.set_ylabel(time_label)
+
+    if save:
+        plt.savefig(save)
+
+    plt.show()
+
+
+def horizontal_phase_space(sdds, page=0, save=None):
+    phase_space_projection(sdds, 'x', 'xp', page=page, save=save)
+
+
+def vertical_phase_space(sdds, page=0, save=None):
+    phase_space_projection(sdds, 'y', 'yp', page=page, save=save)
+
+
+def phase_space_projection(sdds, coordinate_x, coordinate_y, page=0, save=None):
+    """
+    Plot of the longitudinal phase space with projection plots of current distribution and momentum profile.
+    Args:
+        sdds: Open SDDS file from rsbeams.rsdata.readSDDS
+        page: [0] Optional page number to read from
+        save: [None] Full file name, including extension, if image should be saved
+
+    Returns:
+
+    """
+    fig, gs, hm, mom, tim = _get_phase_space_figure()
+
+    sdds_columns = sdds.columns[page]
+
+    space_scale = 1e3
+    x = sdds_columns[coordinate_x]
+    y = sdds_columns[coordinate_y]
+
+
+    x_bins, x_counts = util.get_histogram_points(x * space_scale, 256)
+    y_bins, y_counts = util.get_histogram_points(y * space_scale, 256)
+    counts, mxbins, mybins = np.histogram2d(x * space_scale, y * space_scale, bins=128)
+
+    hm.imshow(counts.T, interpolation='gaussian',
+              extent=(np.min(mxbins), np.max(mxbins), np.min(mybins), np.max(mybins)),
+              origin='lower',
+              aspect='auto')
+
+    ylabel = util.format_symbol(sdds.column_symbol[coordinate_y])
+    ylabel += ' (m' + util.format_symbol(sdds.column_symbol[coordinate_y]) + ')'
+
+    hm.set_ylabel(ylabel)
+    hm.set_xticklabels([])
+
+    mom.plot(y_counts, y_bins)
+    mom.set_yticklabels([])
+    mom.set_xlabel('Counts ()')
+
+    xlabel = util.format_symbol(sdds.column_symbol[coordinate_x])
+    xlabel += ' (m' + util.format_symbol(sdds.column_symbol[coordinate_x]) + ')'
+
+    tim.plot(x_counts, x_bins)
+    tim.set_xlabel(xlabel)
+    tim.set_ylabel('Counts ()')
 
     if save:
         plt.savefig(save)

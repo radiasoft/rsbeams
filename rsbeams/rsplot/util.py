@@ -5,11 +5,13 @@ import numpy as np
 _element_mappings = {'QUAD': ['KQUAD', 'QUAD'],
                      'SBEND': ['SBEND', 'CSBEND', 'CSRCSBEND', 'RBEND'],
                      'SEXT': ['SEXT', ],
-                     'RFCW': ['RFCW', 'RFCA']}
+                     'RFCW': ['RFCW', 'RFCA'],
+                     'OCT': ['OCTU', 'KOCT']}
 _element_colors = {'QUAD': 'tab:green',
                    'SBEND': 'tab:red',
                    'SEXT': 'tab:blue',
-                   'RFCW': 'tab:orange'}
+                   'RFCW': 'tab:orange',
+                   'OCT': 'tab:purple'}
 
 _greek_map = {
     'a': '\\alpha',
