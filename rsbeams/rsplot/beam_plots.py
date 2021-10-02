@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 from rsbeams.rsplot import util
 
 
-def beamline_profile(sdds, page=0, quantities=None):
+def beamline_profile(sdds, page=0, quantities=None, xlim=None, ylim=None, save=None):
     sdds_columns = sdds.columns[page]
-    sdds_parameters = sdds.parameters[page]
 
     if not quantities:
         quantities = ['Sx', 'Sy']
@@ -17,13 +16,20 @@ def beamline_profile(sdds, page=0, quantities=None):
     ax1.axis('off')
     util.plot_profile(sdds_columns, ax1, height=0.25)
     for quant in quantities:
-        ax2.plot(sdds_columns['s'], sdds_columns[quant], label=r'$\varepsilon_{nx}$')
+        ax2.plot(sdds_columns['s'], sdds_columns[quant], label=util.format_symbol(sdds.column_symbol[quant]))
 
     ax2.legend(fontsize=16)
     ax2.set_xlabel('s (m)', fontsize=16)
-    ax2.set_ylabel(r'$\varepsilon_{nx,ny}$ ($\mu$m)', fontsize=16)
-    # ax2.set_ylim(0.8e-6, 3e-6)
-    # plt.savefig('figures_run3/emittance_best.pdf')
+
+    ylabel = ','.join([util.format_symbol(sdds.column_symbol[quant]) for quant in quantities])
+    ylabel += ' (' + ','.join([util.format_symbol(sdds.column_units[quant]) for quant in quantities]) + ')'
+    ax2.set_ylabel(ylabel, fontsize=16)
+    if xlim:
+        ax2.set_xlim(*xlim)
+    if ylim:
+        ax2.set_ylim(*ylim)
+    if save:
+        plt.savefig(save)
     plt.show()
 
 
