@@ -80,6 +80,8 @@ class readSDDS:
             self.openf = buffer
         self._parse_header()
         self._initialize_data_arrays()
+        self._data_descriptions = {k: utils.list_to_dict([f.fields for f in v], 'name') for k, v in self.data.items() if k != '&data'}
+
 
     @property
     def parameters(self):
@@ -461,6 +463,38 @@ class readSDDS:
 
         return data_arrays, position
 
+    def parameter_symbol(self, parameter):
+        return self._data_descriptions['&parameter'][parameter]['symbol']
+
+    def parameter_units(self, parameter):
+        return self._data_descriptions['&parameter'][parameter]['units']
+
+    def parameter_description(self, parameter):
+        return self._data_descriptions['&parameter'][parameter]['description']
+
+    def parameter_format_string(self, parameter):
+        return self._data_descriptions['&parameter'][parameter]['format_string']
+
+    def parameter_type(self, parameter):
+        return self._data_descriptions['&parameter'][parameter]['type']
+
+    def parameter_fixed_value(self, parameter):
+        return self._data_descriptions['&parameter'][parameter]['fixed_value']
+
+    def column_symbol(self, column):
+        return self._data_descriptions['&column'][column]['symbol']
+
+    def column_units(self, column):
+        return self._data_descriptions['&column'][column]['units']
+
+    def column_description(self, column):
+        return self._data_descriptions['&column'][column]['description']
+
+    def column_format_string(self, column):
+        return self._data_descriptions['&column'][column]['format_string']
+
+    def column_type(self, column):
+        return self._data_descriptions['&column'][column]['type']
 
 headSDDS = "SDDS1\n"
 columnAttributeStr = {'colName': ['name=', '{}'], 'colType': ['type=', '{}'], 'colUnits': ['units=', '"{}"'],

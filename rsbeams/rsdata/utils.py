@@ -53,3 +53,14 @@ def get_entry_from_parameters(parameters, entry, raise_error=True):
     return None
 
 
+def list_to_dict(l, name_key):
+    new_dict = {}
+    for d in l:
+        d_copy = d.copy()
+        new_dict[d_copy.pop(name_key)] = d_copy
+
+    return new_dict
+
+
+
+
