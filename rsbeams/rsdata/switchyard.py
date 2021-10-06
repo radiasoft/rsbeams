@@ -61,12 +61,16 @@ def read_opal(file_name, step_number=None, species_name='Species'):
     # yp -- vertical momentum, beta*gamma
     # z  -- Position relative to ? (some sort of reference), m
     # p  -- total momentum, beta*gamma
-    # TODO: We really need to be able to pull from screens too but we'll settle for standard distribution output for now
-    # TODO: We don't currently handle particle specific weight/charge in Species
 
     with h5.File(file_name, 'r') as pcdata:
         if not step_number:
-            step_number = len(pcdata) - 1
+            # Use last step in the file
+            all_step_numbers = []
+            for key in pcdata.keys():
+                sn_string = _get_step_number(key)
+                sn = int(sn_string)
+                all_step_numbers.append(sn)
+            step_number = np.max(all_step_numbers)
         loc = 'Step#{}'.format(step_number)
         mp_count = pcdata[loc+'/z'].shape[0]
         particle_data = np.empty((mp_count, 6))
@@ -241,3 +245,7 @@ class Switchyard:
         self._writers[code](filename, species_name, **kwargs)
 
         return filename
+
+def _get_step_number(key, prefix='Step#'):
+    result = key.split(prefix)[-1]
+    return result

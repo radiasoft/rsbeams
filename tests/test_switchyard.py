@@ -5,7 +5,7 @@ from scipy.constants import c
 from rsbeams.rsdata import switchyard
 from rsbeams.rsdata.SDDS import readSDDS
 
-_ELEGANT_READ_FILE = 'bunch_5001.sdds'
+_ELEGANT_READ_FILE = 'test_resources/bunch_5001.sdds'
 _OPAL_READ_FILE = 'test_resources/opal.h5'
 
 class TestReaders(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestReaders(unittest.TestCase):
         obj = switchyard.Switchyard()
         obj.read(_ELEGANT_READ_FILE, 'elegant')
 
-        expected = readSDDS('bunch_5001.sdds')
+        expected = readSDDS(_ELEGANT_READ_FILE)
         expected.read()
 
         coordinates = expected.columns.squeeze()
