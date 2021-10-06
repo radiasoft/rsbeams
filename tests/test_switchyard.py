@@ -7,6 +7,7 @@ from rsbeams.rsdata.SDDS import readSDDS
 
 _ELEGANT_READ_FILE = 'test_resources/bunch_5001.sdds'
 _OPAL_READ_FILE = 'test_resources/opal.h5'
+_OPAL_MONITOR_FILE = 'test_resources/opal.h5'
 
 class TestReaders(unittest.TestCase):
     def setUp(self):
@@ -32,9 +33,13 @@ class TestReaders(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(coordinates['t'], obj.species[species_name].ct, atol=1e-14)))
         self.assertTrue(np.all(np.isclose(coordinates['p'], obj.species[species_name].pt, atol=1e-14)))
 
-    def test_read_opal(self):
+    def test_read_opal_phase_space(self):
         obj = switchyard.Switchyard()
         obj.read(_OPAL_READ_FILE, 'opal')
+
+    def test_read_opal_monitor(self):
+        obj = switchyard.Switchyard()
+        obj.read(_OPAL_MONITOR_FILE, 'opal')
 
     def test_read_bad_format(self):
         # File exists but format name does not

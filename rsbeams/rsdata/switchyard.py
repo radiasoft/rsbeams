@@ -68,14 +68,16 @@ def read_opal(file_name, step_number=None, species_name='Species'):
             all_step_numbers = []
             for key in pcdata.keys():
                 sn_string = _get_step_number(key)
-                sn = int(sn_string)
-                all_step_numbers.append(sn)
+                try:
+                    sn = int(sn_string)
+                    all_step_numbers.append(sn)
+                except ValueError:
+                    pass
             step_number = np.max(all_step_numbers)
         loc = 'Step#{}'.format(step_number)
         mp_count = pcdata[loc+'/z'].shape[0]
         particle_data = np.empty((mp_count, 6))
         for i, coord in enumerate(['x', 'px', 'y', 'py', 'z', 'pz']):
-            print(loc+'/'+coord)
             particle_data[:, i] = pcdata[loc+'/'+coord]
         total_charge = pcdata[loc].attrs['CHARGE']
 
