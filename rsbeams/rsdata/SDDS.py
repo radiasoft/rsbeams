@@ -685,7 +685,7 @@ class writeSDDS:
         # Write Parameters
         for parameter in self.parameters:
             # Pass if fixed_value used (parData will be None)
-            if parameter['parData']:
+            if parameter['parData'] is not None:
                 if self.dataMode == 'ascii':
                         outputFile.write('{}\n'.format(parameter['parData']).encode())
                 if self.dataMode == 'binary':
