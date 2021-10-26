@@ -1,5 +1,6 @@
 import unittest
 import os
+import pathlib
 import numpy as np
 from scipy.constants import c
 from rsbeams.rsdata import switchyard
@@ -8,6 +9,7 @@ from rsbeams.rsdata.SDDS import readSDDS
 _ELEGANT_READ_FILE = 'test_resources/bunch_5001.sdds'
 _OPAL_READ_FILE = 'test_resources/opal.h5'
 _OPAL_MONITOR_FILE = 'test_resources/opal.h5'
+
 
 class TestReaders(unittest.TestCase):
     def setUp(self):
@@ -46,27 +48,44 @@ class TestReaders(unittest.TestCase):
         obj = switchyard.Switchyard()
         self.assertRaises(LookupError, obj.read, _ELEGANT_READ_FILE, 'not_supported_format')
 
+
 class TestWriters(unittest.TestCase):
     def setUp(self):
         # Filenames to be created
-        self._FILES = {
-            'ELEGANT_TO_GENESIS': 'write1.in',
-            'OPAL_TO_ELEGANT': 'write2.sdds'
-        }
+        self._FILES = []
 
     def test_opal_to_elegant(self):
+        fn = 'opal2elegant.sdds'
         obj = switchyard.Switchyard()
         obj.read(_OPAL_READ_FILE, 'opal')
-        obj.write(self._FILES['OPAL_TO_ELEGANT'], 'elegant')
+        obj.write(fn, 'elegant')
+        path = pathlib.Path(fn)
+
+        self.assertTrue(path.is_file())
+        self._FILES.append(fn)
 
     def test_elegant_to_genesis(self):
+        fn = 'elegant2genesis.in'
         obj = switchyard.Switchyard()
         obj.read(_ELEGANT_READ_FILE, 'elegant')
-        obj.write(self._FILES['ELEGANT_TO_GENESIS'], 'genesis')
+        obj.write(fn, 'genesis')
+        path = pathlib.Path(fn)
 
+        self.assertTrue(path.is_file())
+        self._FILES.append(fn)
+
+    def test_opal_write(self):
+        fn = 'opal_write.txt'
+        obj = switchyard.Switchyard()
+        obj.read(_ELEGANT_READ_FILE, 'elegant')
+        obj.write(fn, 'opal')
+        path = pathlib.Path(fn)
+
+        self.assertTrue(path.is_file())
+        self._FILES.append(fn)
 
     def tearDown(self):
-        for filename in self._FILES.values():
+        for filename in self._FILES:
             try:
                 os.remove(filename)
             except OSError:

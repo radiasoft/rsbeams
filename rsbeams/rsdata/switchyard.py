@@ -120,7 +120,7 @@ class Switchyard:
         # pt -- total momentum, beta gamma
         self.species = {}
         self._readers = {'elegant': read_elegant, 'opal': read_opal}
-        self._writers = {'elegant': self.write_elegant, 'genesis': self.write_genesis}
+        self._writers = {'elegant': self.write_elegant, 'genesis': self.write_genesis, 'opal': self.write_opal}
     
     def is_supported(self, code_name):
         
@@ -179,11 +179,14 @@ class Switchyard:
         
         return 0
 
-    def write_opal(self, file_name):
+    def write_opal(self, file_name, species_name):
         """Write a file to OPAL-readable format.
         :file_name: name of file to write to
         """
-        
+        coordinates = self.species[species_name].coordinates
+        N = self.species[species_name].macroparticle_count
+
+        np.savetxt(file_name, coordinates, header='{}'.format(N), comments='')
         return 0
 
     def write_genesis(self, file_name, species_name, version='2.0'):
@@ -247,6 +250,7 @@ class Switchyard:
         self._writers[code](filename, species_name, **kwargs)
 
         return filename
+
 
 def _get_step_number(key, prefix='Step#'):
     result = key.split(prefix)[-1]
