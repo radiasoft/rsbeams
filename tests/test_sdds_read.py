@@ -384,16 +384,11 @@ class TestColumnRead(unittest.TestCase):
 
     def test4(self):
         filename = os.path.join(RESOURCE_DIR, 'error_5.txt')
-        # cols = [0, 1]
         use_buffer = False
         reader = readSDDS(filename, buffer=use_buffer)
         print(reader._variable_length_records)
-        # print(reader.openf.readline())
-        # print(reader.openf.readline())
         reader.read()
         print(reader.columns)
-        # print('Counts?', reader.data['&data'][0].fields['no_row_counts'])
-        # print(reader.columns.shape)
 
     def test5(self):
         filename = os.path.join(RESOURCE_DIR, 'jspec.sdds')
@@ -408,6 +403,14 @@ class TestColumnRead(unittest.TestCase):
         # print('Counts?', reader.data['&data'][0].fields['no_row_counts'])
         # print(reader.columns.shape)
 
+    def test6(self):
+        # OPAL ASCII stat file
+        filename = os.path.join(RESOURCE_DIR, 'opal_run.stat')
+        use_buffer = True
+        reader = readSDDS(filename, buffer=use_buffer)
+        reader.read()
+        self.assertTrue(reader.columns['t'][0][0] == 1.000000000000000e-02)
+        self.assertTrue(reader.columns['t'][0][-1] == 3.335999999999933e+00)
 
 class TestMixedData(unittest.TestCase):
     use_buffer = True

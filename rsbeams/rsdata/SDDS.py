@@ -341,7 +341,7 @@ class readSDDS:
         # Select pages to be stored during the read - if None then store everything
         # pages: internal counter for page numbers
         # user_pages: store what pages are returned 
-        if pages:
+        if pages is not None:
             user_pages = pages
         else:
             user_pages = utils.iter_always()
@@ -454,7 +454,7 @@ class readSDDS:
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=row_count,
                                                comments='!', deletechars='')
                 if self.buffer:
-                    position += 1 * ((0 if not row_count else row_count) + 1 * int(self.data['&data'][0].fields['no_row_counts']))
+                    position += 1 * ((0 if not row_count else row_count) + new_array.size)
             else:
                 new_array = self._get_reader()(self.openf, dtype=dk, count=row_count, offset=position)
                 if self.buffer:
