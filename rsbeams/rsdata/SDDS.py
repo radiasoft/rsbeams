@@ -410,7 +410,7 @@ class readSDDS:
                     pass
             if self.data['&data'][0].fields['mode'] == 'ascii':
                 new_array = self._get_reader()(self.openf, skip_header=position, dtype=dk, max_rows=1,
-                                               comments='!', deletechars='', unpack=True, delimiter='\n\t')
+                                               comments='!', deletechars='', unpack=False, delimiter='\n\t')
                 if self.buffer:
                     position += 1
             else:
