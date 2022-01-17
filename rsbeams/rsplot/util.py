@@ -3,7 +3,7 @@ from matplotlib.collections import PatchCollection
 import numpy as np
 
 _element_mappings = {'QUAD': ['KQUAD', 'QUAD'],
-                     'SBEND': ['SBEND', 'CSBEND', 'CSRCSBEND', 'RBEND'],
+                     'SBEND': ['SBEND', 'CSBEND', 'CSRCSBEND', 'RBEND', 'SBEN'],
                      'SEXT': ['SEXT', ],
                      'RFCW': ['RFCW', 'RFCA'],
                      'OCT': ['OCTU', 'KOCT']}

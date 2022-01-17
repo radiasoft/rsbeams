@@ -22,7 +22,7 @@ def beamline_profile(sdds, page=0, quantities=None, xlim=None, ylim=None, save=N
     ax2.set_xlabel('s (m)', fontsize=16)
 
     ylabel = ','.join([util.format_symbol(sdds.column_symbol(quant)) for quant in quantities])
-    ylabel += ' (' + ','.join([util.format_symbol(sdds.column_units(quant)) for quant in quantities]) + ')'
+    ylabel += ' (' + ','.join([util.format_symbol(sdds.column_units(quant)) if sdds.column_units(quant) != '' else '$-$' for quant in quantities]) + ')'
     ax2.set_ylabel(ylabel, fontsize=16)
     if xlim:
         ax2.set_xlim(*xlim)
