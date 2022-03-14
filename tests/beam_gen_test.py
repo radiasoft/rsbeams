@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import pytest
 import numpy
-from rsbeams.rsphysics import rsconst
+import pykern.pkconst
 from rsbeams.rsstats import stats6d
 from rsbeams.rsptcls import RsPtclBeam6D
 
@@ -11,7 +11,7 @@ def test_beam_gen():
     num_ptcls = 1000
     design_p_ev = 271e+6
     total_charge_c = 3.05e-09
-    mass_ev = rsconst.m_e_EV
+    mass_ev = pykern.pkconst.m_e_EV
 
     dist_type = 'gaussian'
     max_rms_fac = 4.9
