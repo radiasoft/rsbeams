@@ -19,10 +19,9 @@ Subsequent mods are due to RadiaSoft,
 """
 import math
 from collections import OrderedDict
-
 from rsbeams.rsptcls import RsDistrib6D
 from rsbeams.rsptcls import RsTwiss2D
-from rsbeams.rsphysics import rsconst
+import scipy
 
 class RsPtclBeam6D:
     """Representation of a 6D charged particle distribution."""
@@ -76,5 +75,5 @@ class RsPtclBeam6D:
 
     def get_peak_current_rms(self):
         rms_length = self.distrib6d.calc_rms_values_6d()[4]
-        rms_time = rms_length / (self.get_beta0()*rsconst.c)
+        rms_time = rms_length / (self.get_beta0()*scipy.constants.c)
         return self.total_charge_c/rms_time
