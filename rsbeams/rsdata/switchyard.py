@@ -61,29 +61,35 @@ def read_opal(file_name, step_number=None, species_name='Species'):
     # yp -- vertical momentum, beta*gamma
     # z  -- Position relative to ? (some sort of reference), m
     # p  -- total momentum, beta*gamma
-
-    with h5.File(file_name, 'r') as pcdata:
-        if not step_number:
-            # Use last step in the file
-            all_step_numbers = []
-            for key in pcdata.keys():
-                sn_string = _get_step_number(key)
-                try:
-                    sn = int(sn_string)
-                    all_step_numbers.append(sn)
-                except ValueError:
-                    pass
-            step_number = np.max(all_step_numbers)
-        loc = 'Step#{}'.format(step_number)
-        mp_count = pcdata[loc+'/z'].shape[0]
-        particle_data = np.empty((mp_count, 6))
-        for i, coord in enumerate(['x', 'px', 'y', 'py', 'z', 'pz']):
-            particle_data[:, i] = pcdata[loc+'/'+coord]
-        total_charge = pcdata[loc].attrs['CHARGE']
-
+    # TODO: Can also just check extension first.
+    try:
+        with h5.File(file_name, 'r') as pcdata:
+            if not step_number:
+                # Use last step in the file
+                all_step_numbers = []
+                for key in pcdata.keys():
+                    sn_string = _get_step_number(key)
+                    try:
+                        sn = int(sn_string)
+                        all_step_numbers.append(sn)
+                    except ValueError:
+                        pass
+                step_number = np.max(all_step_numbers)
+            loc = 'Step#{}'.format(step_number)
+            mp_count = pcdata[loc+'/z'].shape[0]
+            particle_data = np.empty((mp_count, 6))
+            for i, coord in enumerate(['x', 'px', 'y', 'py', 'z', 'pz']):
+                particle_data[:, i] = pcdata[loc+'/'+coord]
+            total_charge = pcdata[loc].attrs['CHARGE']
+    except OSError:
+        # TODO: Can't get any charge information from input file
+        with open(file_name, 'r') as ff:
+            particle_count = int(ff.readline())
+        particle_data = np.loadtxt(file_name, skiprows=1)
+        total_charge = None
 
     # TODO: This shouldn't be specific to electrons
-    species =  Species(particle_data, charge=-1, mass=0.511e6, total_charge=total_charge)
+    species = Species(particle_data, charge=-1, mass=0.511e6, total_charge=total_charge)
 
     return species
 
