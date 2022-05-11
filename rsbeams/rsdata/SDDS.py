@@ -32,7 +32,7 @@ class readSDDS:
         - No array data (only parameters and columns)
     """
 
-    def __init__(self, input_file, buffer=True, max_string_length=100):
+    def __init__(self, input_file, buffer=True, max_string_length=100, verbose=False):
         """
         Initialize the read in.
 
@@ -46,7 +46,7 @@ class readSDDS:
         max_string_length: Int
             Upper bound on strings that can be read in. Should be at least as large as the biggest string in the file.
         """
-        self.verbose = False
+        self.verbose = verbose
         self.buffer = buffer
         self.openf = open(input_file, 'rb')
         self.position = 0
@@ -162,11 +162,12 @@ class readSDDS:
         for namelist in self.header:
             namelist_type = namelist.split(maxsplit=1)[0]
             try:
-                namelist_data = supported_namelists[namelist_type](namelist)
+                namelist_class = supported_namelists[namelist_type]
             except KeyError:
                 if self.verbose:
                     print(namelist_type, namelist, 'not parsed')
                 continue
+            namelist_data = namelist_class(namelist)
             self.data[namelist_type].append(namelist_data)
 
         if self.data['&data'][0].fields['mode'] == 'ascii':
@@ -386,7 +387,7 @@ class readSDDS:
             else:
                 row_count = self._get_ascii_row_count(position)
 
-            if row_count is 0:
+            if row_count == 0:
                 continue
             if (isinstance(user_pages, GeneratorType) or (page in user_pages)) or self._variable_length_records:
                 column_data, position = self._get_column_data(self._column_keys, position, row_count)

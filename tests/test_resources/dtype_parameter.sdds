@@ -1,0 +1,6 @@
+SDDS1
+&description text="Error log--input: run.ele  lattice: lattices/dtl_tanks.lte", contents="error log, elegant output" &end
+&associate filename="run.ele", path="/home/vagrant/jupyter/rscon/classifier/data_generation_set1", contents="elegant input, parent" &end
+&parameter name=Step, type=unsupported, description="simulation step" &end
+&data mode=ascii, lines_per_row=1, no_row_counts=1 &end
+0              ! simulation step
