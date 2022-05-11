@@ -18,7 +18,12 @@ class Datum:
 
     def set_data_type(self):
         data_type = self.fields['type']
-        self.type_key = data_types[data_type]
+        try:
+            self.type_key = data_types[data_type]
+        except KeyError as error:
+            print(error)
+            print(f'Data type: {data_type} is not supported by readSDDS')
+            raise
 
 
 class Parameter(Datum):
@@ -57,13 +62,21 @@ class Column(Datum):
     def set_data_type(self):
         # Override to account for field_length setting
         data_type = self.fields['type']
+
+        try:
+            type_key = data_types[data_type]
+        except KeyError as error:
+            print(error)
+            print(f'Data type: {data_type} is not supported by readSDDS')
+            raise
+
         if data_type == 'string':
             if self.fields['field_length'] == 0:
-                self.type_key = data_types[data_type]
+                self.type_key = type_key
             else:
-                self.type_key = data_types[data_type].format(np.abs(self.fields['field_length']))
+                self.type_key = type_key.format(np.abs(self.fields['field_length']))
         else:
-            self.type_key = data_types[data_type]
+            self.type_key = type_key
 
 
 class Array(Datum):

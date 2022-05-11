@@ -3,7 +3,8 @@ import numpy as np
 # TODO: Find sdds use case with 'short' type
 # SDDS defaults to 32 bit unsigned longs on all test systems while numpy uses 64 bits for the np.int_ in test cases
 #  therefore int datatypes are hardcoded in size
-data_types = {'double': np.float64, 'short': np.int16, 'long': np.int32, 'string': 'S{}', 'char': np.char}
+data_types = {'double': np.float64, 'short': np.int16, 'long': np.int32, 'string': 'S{}', 'char': np.char,
+              'float': np.float32}
 
 
 def _return_type(string):

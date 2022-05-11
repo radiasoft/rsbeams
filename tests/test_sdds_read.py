@@ -317,6 +317,11 @@ class TestParameterRead(unittest.TestCase):
         reader.read()
         print(reader.parameters)
 
+    def test_unsupported_dtype(self):
+        filename = os.path.join(RESOURCE_DIR, 'dtype_parameter.sdds')
+        self.assertRaisesRegex(KeyError, 'unsupported',
+                               readSDDS, filename)
+
 
 class TestColumnRead(unittest.TestCase):
 
@@ -411,6 +416,12 @@ class TestColumnRead(unittest.TestCase):
         reader.read()
         self.assertTrue(reader.columns['t'][0][0] == 1.000000000000000e-02)
         self.assertTrue(reader.columns['t'][0][-1] == 3.335999999999933e+00)
+
+    def test_unsupported_dtype(self):
+        filename = os.path.join(RESOURCE_DIR, 'dtype_column.sdds')
+        self.assertRaisesRegex(KeyError, 'notsupported',
+                               readSDDS, filename)
+
 
 class TestMixedData(unittest.TestCase):
     use_buffer = True
