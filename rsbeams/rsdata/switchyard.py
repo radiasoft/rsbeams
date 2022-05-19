@@ -86,7 +86,7 @@ def read_opal(file_name, step_number=None, species_name='Species'):
         with open(file_name, 'r') as ff:
             particle_count = int(ff.readline())
         particle_data = np.loadtxt(file_name, skiprows=1)
-        total_charge = None
+        total_charge = 0
 
     # TODO: This shouldn't be specific to electrons
     species = Species(particle_data, charge=-1, mass=0.511e6, total_charge=total_charge)
