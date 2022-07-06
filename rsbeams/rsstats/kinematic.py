@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+
 import sys
 import argparse as arg
 import numpy as np
 from scipy.constants import e, c, m_e, physical_constants
 from future.utils import iteritems
-
 
 m_e_ev = physical_constants['electron mass energy equivalent in MeV'][0] * 1e6
 m_e_kg = m_e
@@ -26,23 +26,24 @@ input.add_argument("-r", "--brho", dest="brho", type=float, help="Input Brho val
 input.add_argument("-b", "--beta", dest="beta", type=float, help="Input beta value. Default unit none")
 input.add_argument("-g", "--gamma", dest="gamma", type=float, help="Input gamma value. Default unit none")
 
-parser.add_argument("-m", "--mass", dest="mass", type=float, help="Optional: Value of particle mass to use.")
+parser.add_argument("-m", "--mass", dest="mass", type=float, help="Optional: Value of particle mass to use. Default "
+                                                                  "mass is for an electron")
 
 parser.add_argument("--mass_unit", dest="mass_unit", choices=["SI", "eV"], default="eV",
                     help="Set mass units. Options are:\n"
-                    "'SI' for standard SI units on all inputs.\n"
-                    "'eV' for the respective electron volt based unit "
-                    "for all inputs.\nDefaults to 'eV'.\n")
+                         "'SI' for standard SI units on all inputs.\n"
+                         "'eV' for the respective electron volt based unit "
+                         "for all inputs.\nDefaults to 'eV'.\n")
 parser.add_argument("--unit", dest="input_unit", choices=["SI", "eV"], default="eV",
                     help="Set input units. Options are:\n"
-                    "'SI' for standard SI units on all inputs.\n"
-                    "'eV' for the respective electron volt based unit "
-                    "for all inputs.\nDefaults to 'eV'.\n")
+                         "'SI' for standard SI units on all inputs.\n"
+                         "'eV' for the respective electron volt based unit "
+                         "for all inputs.\nDefaults to 'eV'.\n")
 parser.add_argument("--output_unit", dest="output_unit", choices=["SI", "eV"], default="eV",
                     help="Set output unit for mass and kinetmatics. Options are:\n"
-                    "'SI' for standard SI units on all outputs.\n"
-                    "'eV' for the respective electron volt based unit "
-                    "for all outputs.\nDefaults to 'eV'.\n")
+                         "'SI' for standard SI units on all outputs.\n"
+                         "'eV' for the respective electron volt based unit "
+                         "for all outputs.\nDefaults to 'eV'.\n")
 
 
 class Converter:
@@ -50,6 +51,7 @@ class Converter:
     Converter works by taking the input kinematic quantity and then always calculating beta and gamma;
     all other kinematic quantity calculations are then performed in terms of beta and gamma.
     """
+
     def __init__(self, momentum=None, velocity=None, energy=None, kenergy=None,
                  betagamma=None, beta=None, gamma=None, brho=None, mass=None,
                  mass_unit='eV', input_unit='eV', output_unit='eV',
@@ -64,14 +66,9 @@ class Converter:
             - Normalized momentum (beta * gamma)
             - Energy
             - Kinetic Energy
+            - Brho
 
-        Currently only works through passing in a parser object with appropriate settings
-        Args:
-            start_parser: Parser object containing necessary settings.
-
-        Returns:
-            None
-            Prints results
+        To use: call instantiated Converter.
         """
         if start_parser:
             args = start_parser.parse_args()
@@ -109,10 +106,12 @@ class Converter:
                         "brho": self.calculate_brho,
                         "beta": None,
                         "gamma": None,
-                        "p_unit": "eV/c" * (self.args['output_unit'] == 'eV') + "kg * m/s" * (self.args['output_unit'] == 'SI'),
+                        "p_unit": "eV/c" * (self.args['output_unit'] == 'eV') + "kg * m/s" * (
+                                    self.args['output_unit'] == 'SI'),
                         "e_unit": "eV" * (self.args['output_unit'] == 'eV') + "J" * (self.args['output_unit'] == 'SI'),
                         "mass": None,
-                        "mass_unit": "eV/c^2" * (self.args['output_unit'] == 'eV') + "kg" * (self.args['output_unit'] == 'SI'),
+                        "mass_unit": "eV/c^2" * (self.args['output_unit'] == 'eV') + "kg" * (
+                                    self.args['output_unit'] == 'SI'),
                         "input": None,
                         "input_unit": None,
                         "input_type": None}
@@ -120,20 +119,25 @@ class Converter:
         # Match mass unit to input units. Print mass in units the user used for input though.
         if self.args['mass_unit'] == "eV":
             if self.args['mass']:
-                self.mass = self.args['mass'] * (1 * (self.args['input_unit'] == 'eV') + 1 / ev_per_kg * (self.args['input_unit'] == 'SI'))
+                self.mass = self.args['mass'] * (
+                            1 * (self.args['input_unit'] == 'eV') + 1 / ev_per_kg * (self.args['input_unit'] == 'SI'))
                 self.outputs["mass"] = self.args['mass']
             else:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev
         elif self.args['mass_unit'] == "SI":
             if self.outputs['mass']:
-                self.mass = self.outputs['mass'] * (1 * (self.outputs['input_unit'] == 'SI') + 1 / ev_per_kg * (self.outputs['input_unit'] == 'eV'))
+                self.mass = self.outputs['mass'] * (1 * (self.outputs['input_unit'] == 'SI') + 1 / ev_per_kg * (
+                            self.outputs['input_unit'] == 'eV'))
                 self.outputs["mass"] = self.outputs['mass']
             else:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev / ev_per_kg
 
     def __call__(self, *args, silent=False, **kwargs):
+        """Run kinematic conversion.
+        silent (bool): If True then suppress printout and just return values in dict.
+        """
         # Set beta and gamma based on the input value
         for key, value in self.args.items():
             if value is not None and key in self.startup:
@@ -175,7 +179,7 @@ class Converter:
         """
         if self.args['output_unit'] == 'SI':
             self._unit_convert(input_unit='eV', input_dict=self.outputs)
-        
+
         if not silent:
             print(print_string.format(**self.outputs))
 
@@ -255,7 +259,7 @@ class Converter:
 
         gamma = kenergy / self.mass + 1.
 
-        return np.sqrt(1. - 1 / gamma ** 2), gamma
+        return np.sqrt(1. - 1 / gamma**2), gamma
 
     def start_brho(self, brho):
         beta, gamma = self.start_momentum(brho * c)
@@ -295,10 +299,20 @@ class Converter:
         for key in conversion_factors:
             print(key, input_dict[key], (conversion_factors[key]), 2 * (input == 'SI') - 1)
             if input_dict[key]:
-                input_dict[key] = input_dict[key] * (conversion_factors[key])**(2 * (input_unit == 'SI') - 1)
+                input_dict[key] = input_dict[key] * (conversion_factors[key]) ** (2 * (input_unit == 'SI') - 1)
+
+
+def main():
+    """Run from cmd line entrypoint.
+    """
+    if len(sys.argv) == 1:
+        parser.print_help()
+    run_converter = Converter(start_parser=parser)
+    run_converter()
 
 
 if __name__ == "__main__":
+    # Using kinematic as script is deprecated - use entrypoint established by setup.py
     if len(sys.argv) == 1:
         parser.print_help()
     run_converter = Converter(start_parser=parser)
