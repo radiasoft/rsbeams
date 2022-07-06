@@ -5,16 +5,7 @@ import numpy as np
 from scipy.constants import e, c, m_e, physical_constants
 from future.utils import iteritems
 
-# TODO: Priority #1: Need to go back to the principle that user puts in whatever units they desire
-# TODO: cont.  All calculations internall are cgs and then conversion is done to put in the form user requests
-# TODO: Priority #2: Comprehensive set of tests for combinations of input and output units
 
-# ERROR: kinematic -v 299788543.885 --unit SI: This returns numbers that are in eV but the units claim they're SI
-
-# TODO: Add functionality to the Converter class for stand-alone use in scripts/notebooks
-# TODO: Add output conversion to SI units
-# TODO: Dynamically adjust printout to use sensible unit scale? (i.e. not just eV but MeV, GeV, etc if more readable)
-# TODO: Add check when E is given to make sure E>mc**2
 m_e_ev = physical_constants['electron mass energy equivalent in MeV'][0] * 1e6
 m_e_kg = m_e
 ev_per_kg = m_e_ev / m_e_kg
