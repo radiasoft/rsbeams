@@ -22,6 +22,7 @@ input.add_argument("-v", "--velocity", dest="velocity", type=float, help="Input 
 input.add_argument("-E", "--energy", dest="energy", type=float, help="Input velocity value. Default unit eV")
 input.add_argument("-KE", "--kenergy", dest="kenergy", type=float, help="Input kinetic energy value. Default unit eV")
 input.add_argument("-bg", "--betagamma", dest="betagamma", type=float, help="Input beta*gamma value. Default unit none")
+input.add_argument("-r", "--brho", dest="brho", type=float, help="Input Brho value. Default unit T*m")
 input.add_argument("-b", "--beta", dest="beta", type=float, help="Input beta value. Default unit none")
 input.add_argument("-g", "--gamma", dest="gamma", type=float, help="Input gamma value. Default unit none")
 
@@ -50,7 +51,7 @@ class Converter:
     all other kinematic quantity calculations are then performed in terms of beta and gamma.
     """
     def __init__(self, momentum=None, velocity=None, energy=None, kenergy=None,
-                 betagamma=None, beta=None, gamma=None, mass=None,
+                 betagamma=None, beta=None, gamma=None, brho=None, mass=None,
                  mass_unit='eV', input_unit='eV', output_unit='eV',
                  start_parser=None):
         """
@@ -80,7 +81,7 @@ class Converter:
             for key in ['mass_unit', 'input_unit', 'output_unit']:
                 assert self.args[key] == 'eV' or self.args[key] == 'SI', "Units must be given as SI or eV"
             declaration = 0
-            for key in ['momentum', 'velocity', 'energy', 'kenergy', 'betagamma', 'beta', 'gamma']:
+            for key in ['momentum', 'velocity', 'energy', 'kenergy', 'betagamma', 'brho', 'beta', 'gamma']:
                 if self.args[key] is not None:
                     declaration += 1
             assert declaration == 1, "One and only one initial kinematic quantity must be provided"
@@ -96,7 +97,8 @@ class Converter:
                         "kenergy": self.start_kenergy,
                         "betagamma": self.start_betagamma,
                         "beta": self.start_beta,
-                        "gamma": self.start_gamma}
+                        "gamma": self.start_gamma,
+                        "brho": self.start_brho}
 
         # Store quantities needed for output or method to calculate that quantity
         self.outputs = {"momentum": self.calculate_momentum,
@@ -104,6 +106,7 @@ class Converter:
                         "energy": self.calculate_energy,
                         "kenergy": self.calculate_kenergy,
                         "betagamma": self.calcuate_betagamma,
+                        "brho": self.calculate_brho,
                         "beta": None,
                         "gamma": None,
                         "p_unit": "eV/c" * (self.args['output_unit'] == 'eV') + "kg * m/s" * (self.args['output_unit'] == 'SI'),
@@ -168,6 +171,7 @@ class Converter:
         beta * gamma: {betagamma}
         energy: {energy} {e_unit}
         kinetic energy: {kenergy} {e_unit}
+        Brho: {brho} T*m
         """
         if self.args['output_unit'] == 'SI':
             self._unit_convert(input_unit='eV', input_dict=self.outputs)
@@ -251,7 +255,12 @@ class Converter:
 
         gamma = kenergy / self.mass + 1.
 
-        return np.sqrt(1. - 1 / gamma**2), gamma
+        return np.sqrt(1. - 1 / gamma ** 2), gamma
+
+    def start_brho(self, brho):
+        beta, gamma = self.start_momentum(brho * c)
+
+        return beta, gamma
 
     # All calculate methods are called to get necessary kinematic quantities
     def calculate_momentum(self, beta, gamma, **kwargs):
@@ -271,6 +280,9 @@ class Converter:
 
     def calculate_velocity(self, beta, **kwargs):
         return beta * c
+
+    def calculate_brho(self, beta, gamma, **kwargs):
+        return self.calculate_momentum(beta, gamma) / c
 
     def _unit_convert(self, input_unit, input_dict):
         # momentum energy kenergy
