@@ -126,10 +126,10 @@ class Converter:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev
         elif self.args['mass_unit'] == "SI":
-            if self.outputs['mass']:
-                self.mass = self.outputs['mass'] * (1 * (self.outputs['input_unit'] == 'SI') + 1 / ev_per_kg * (
-                            self.outputs['input_unit'] == 'eV'))
-                self.outputs["mass"] = self.outputs['mass']
+            if self.args['mass']:
+                self.mass = self.args['mass'] * (1 * (self.args['input_unit'] == 'SI') + ev_per_kg * (
+                            self.args['input_unit'] == 'eV'))
+                self.outputs["mass"] = self.args['mass']
             else:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev / ev_per_kg
