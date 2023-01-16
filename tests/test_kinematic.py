@@ -1,31 +1,34 @@
+import pathlib
 import pytest
 import numpy
 from rsbeams.rsstats import kinematic
+from pykern import pkjson
 
-kinematic_list = [
-        "beta",
-        "momentum",
-    ]
 
-@pytest.mark.parametrize(
-    ("particle_mass", "kinematic_quantity"),
-    [
-        (938.2723e6, {"beta": 0.500, "momentum": 541711642.6722883}),
-        (510998, {"beta": 0.500, "momentum": 295025.381}),
-    ],
-)
-class TestGroup:
+DATA = pkjson.load_any(open(pathlib.Path("test_resources").joinpath('kinematic_data.json')))
+KINEMATICS_LIST = ["beta", "momentum", "gamma", "momentum", "energy",
+                  "kenergy", "brho", "velocity", "betagamma"]
 
-    @pytest.fixture
-    def converter(self,  particle_mass: float, kinematic_quantity: dict, k_converter: str) -> kinematic.Converter:
 
-        return kinematic.Converter(mass=particle_mass,
-                                   mass_unit='eV',
-                                   input_unit='eV',
-                                   output_unit='eV',
-                                   **{k_converter: kinematic_quantity[k_converter]})
+def get_kinematic_quantities(particle_type: str, unit: str) -> dict:
+    return DATA[particle_type][unit]["kinematic_quantities"]
 
-    @pytest.mark.parametrize("k_converter", kinematic_list)
-    @pytest.mark.parametrize("k_test", kinematic_list)
-    def test_one(self, k_test,  kinematic_quantity: dict, converter: kinematic.Converter) -> None:
-        assert numpy.isclose(converter(silent=True)[k_test], kinematic_quantity[k_test])
+@pytest.fixture
+def converter(particle_type: str,  k_converter: str) -> kinematic.Converter:
+    mass_unit = "eV"
+    kinematic_quantity = get_kinematic_quantities(particle_type, unit=mass_unit)
+
+    return kinematic.Converter(mass=DATA[particle_type][mass_unit]['mass'],
+                               mass_unit=mass_unit,
+                               input_unit='eV',
+                               output_unit='eV',
+                               **{k_converter: kinematic_quantity[k_converter]})
+
+
+@pytest.mark.parametrize("particle_type", ("proton", "electron"))
+@pytest.mark.parametrize("k_converter", KINEMATICS_LIST)
+@pytest.mark.parametrize("k_test", KINEMATICS_LIST)
+def test_ev_to_ev(particle_type: str, k_test:str, converter: kinematic.Converter) -> None:
+
+    kinematic_quantity = get_kinematic_quantities(particle_type, unit="eV")
+    assert numpy.isclose(converter(silent=True)[k_test], kinematic_quantity[k_test])
