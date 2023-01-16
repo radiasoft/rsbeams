@@ -1,32 +1,31 @@
-from rsbeams.rsstats import kinematic
 import pytest
-"""
-top level cases: outputs / inputs
-    for each: particle type 
-     Read properties for particle type(mass, bet)
-     INSTANTIATE Converter
-        For key in result actually test values
+import numpy
+from rsbeams.rsstats import kinematic
 
-"""
+kinematic_list = [
+        "beta",
+        "momentum",
+    ]
 
+@pytest.mark.parametrize(
+    ("particle_mass", "kinematic_quantity"),
+    [
+        (938.2723e6, {"beta": 0.500, "momentum": 541711642.6722883}),
+        (510998, {"beta": 0.500, "momentum": 295025.381}),
+    ],
+)
+class TestGroup:
 
+    @pytest.fixture
+    def converter(self,  particle_mass: float, kinematic_quantity: dict, k_converter: str) -> kinematic.Converter:
 
-@pytest.fixture
-def build_converter(request):
-    vals = request.param
-    c = kinematic.Converter(mass=mass, beta=beta, output_unit=output_unit,
-                            input_unit=input_unit, mass_unit=input_mass_unit)
-    return c
+        return kinematic.Converter(mass=particle_mass,
+                                   mass_unit='eV',
+                                   input_unit='eV',
+                                   output_unit='eV',
+                                   **{k_converter: kinematic_quantity[k_converter]})
 
-
-# @pytest.mark.parametrize("mass", [0.511e6, 938e6])
-# @pytest.mark.parametrize("beta", [0.5, 0.75])
-# def test_meta(mass, beta):
-#     print(mass, beta)
-
-@pytest.mark.parametrize("build_converter", [0.511e6, 938e6], indirect=True)
-@pytest.mark.parametrize("beta,key,expected", [[0.5, 'beta', 0.500], [0.75,'beta', 0.7500]])
-def test_converter_build(build_converter, beta, key, expected,
-                         input_unit='eV', output_unit='eV', input_mass_unit='eV'):
-    c = build_converter
-    assert c[key] == expected
+    @pytest.mark.parametrize("k_converter", kinematic_list)
+    @pytest.mark.parametrize("k_test", kinematic_list)
+    def test_one(self, k_test,  kinematic_quantity: dict, converter: kinematic.Converter) -> None:
+        assert numpy.isclose(converter(silent=True)[k_test], kinematic_quantity[k_test])
