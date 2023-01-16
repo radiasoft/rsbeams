@@ -1,0 +1,36 @@
+{
+  "output_ev": {
+    "proton": {
+      "properties": {
+        "mass": 938.2723e6,
+        "beta": 0.500
+      },
+      "result": {
+        "beta": 0.500,
+        "gamma": 1.155,
+        "momentum": 542.3,
+        "energy": 1083.7,
+        "kenergy": 145.4,
+        "bhro": 1.809,
+        "velocity": 149896229.0,
+        "betagamma": 0.5775
+      }
+    },
+    "electron": {
+      "properties": {
+        "mass":  510998,
+        "beta": 0.500
+      },
+      "result": {
+        "beta": 0.500,
+        "gamma":  1.1547,
+        "momentum": 295025.381,
+        "energy": 590050.7626,
+        "kenergy":  79051.8126,
+        "bhro": 0.0009840,
+        "velocity": 149896229.0,
+        "betagamma":  0.57735026
+      }
+    }
+  }
+}
