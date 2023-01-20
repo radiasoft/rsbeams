@@ -35,8 +35,9 @@ def read_elegant(file_name, species_name ='Species'):
         charge_data = 0.0
 
     particle_data = np.zeros([sdds_data.size, 6])
-    for i, col in enumerate(['x', 'xp', 'y', 'yp', 't', 'p']):
-        particle_data[:, i] = sdds_data[col][:]
+    if sdds_data.size > 0:
+        for i, col in enumerate(['x', 'xp', 'y', 'yp', 't', 'p']):
+            particle_data[:, i] = sdds_data[col]
 
     # Coordinate conversions
     particle_data[:, 1] *= particle_data[:, 5]
