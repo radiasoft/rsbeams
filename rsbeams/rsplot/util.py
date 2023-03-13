@@ -116,14 +116,11 @@ def get_histogram_points(data, bin_number):
     return central_bins, counts
 
 
-def get_current_from_t(time_data, charge):
+def get_current_from_t(time_data, charge, bin_number=256):
     q_per_p = charge / time_data.size
-
-    bin_number = 256
 
     counts, bins = np.histogram((time_data - np.average(time_data)), bins=int(bin_number))
     bin_length = bins[1] - bins[0]
-    # print(np.std(time_data))
     central_bins = np.array([(bins[i + 1] + bins[i]) / 2. for i in range(len(bins) - 1)])
     normalized_counts = counts * q_per_p / bin_length  # [count] * [Coulomb / count] / [seconds]
 
