@@ -18,6 +18,9 @@ setup(
         'sympy>=1.2',
         'ruamel.yaml'
     ],
+    entry_points={
+        'console_scripts': ['kinematic=rsbeams.rsstats.kinematic:main'],
+    },
     description='Code-agnostic Python utilities for particle beam simulations',
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     url='https://github.com/radiasoft/rsbeams',
