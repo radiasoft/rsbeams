@@ -9,19 +9,19 @@ def beamline_profile(sdds, page=0, quantities=None, xlim=None, ylim=None, save=N
     if not quantities:
         quantities = ['Sx', 'Sy']
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 6),
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 6),
                                    sharex=True,
                                    gridspec_kw={'height_ratios': [1, 8]})
 
     ax1.axis('off')
     util.plot_profile(sdds_columns, ax1, height=0.25)
     for quant in quantities:
-        ax2.plot(sdds_columns['s'], sdds_columns[quant], label=util.format_symbol(sdds.column_symbol(quant)))
+        ax2.plot(sdds_columns['s'], sdds_columns[quant], label=util.format_symbol(sdds.column_symbol(quant)) if sdds.column_symbol(quant) != '' else sdds.column_description(quant))
 
     ax2.legend(fontsize=16)
     ax2.set_xlabel('s (m)', fontsize=16)
 
-    ylabel = ','.join([util.format_symbol(sdds.column_symbol(quant)) for quant in quantities])
+    ylabel = ','.join([util.format_symbol(sdds.column_symbol(quant)) if sdds.column_symbol(quant) != '' else sdds.column_description(quant) for quant in quantities])
     ylabel += ' (' + ','.join([util.format_symbol(sdds.column_units(quant)) if sdds.column_units(quant) != '' else '$-$' for quant in quantities]) + ')'
     ax2.set_ylabel(ylabel, fontsize=16)
     if xlim:
