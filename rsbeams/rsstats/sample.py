@@ -53,7 +53,7 @@ def cdf_on_grid(distribution: callable, grid: np.ndarray, args: tuple = None) ->
 
 
 def sample(n: int, distribution: callable, a: int, b: int,
-           args: tuple = None, wn: int = 10000, method: str = 'random', invert: str = 'numeric') -> np.ndarray:
+           args: tuple = None, wn: int = 10000, method: str = 'random', invert: str = 'interpolate') -> np.ndarray:
     """Sample from a 1D distribution.
     Draws a set of samples from a distribution by calculating the cumulative distribution function
     and using the inverse transform sampling method.
