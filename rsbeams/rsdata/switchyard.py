@@ -1,29 +1,30 @@
-
-# Import the relevant data formats
-
+import h5py as h5
 import pandas as pd
 import numpy as np
-import h5py as h5
-from scipy import constants
-from rsbeams.rsptcls.species import Species
-from subprocess import Popen, PIPE
 from rsbeams.rsdata.SDDS import writeSDDS, readSDDS
+from rsbeams.rsptcls.species import Species
+from scipy import constants
 
 _DEFAULT_SPECIES_NAME = 'species_0'
 
 
-def read_elegant(file_name, species_name ='Species'):
+def read_elegant(file_name: str) -> Species:
     """Read in a file from elegant output.
-    :file_name: name of file to read from
-    """
 
-    # elegant coordinates are as follows:
-    # x  -- horizontal offset, m
-    # x' -- horizontal angle, rad
-    # y  -- vertical offset, m
-    # y' -- vertical angle, rad
-    # t  -- time of flight, sec
-    # p  -- longitudinal momentum, mc
+    elegant coordinates are as follows:
+    x  -- horizontal offset, m
+    x' -- horizontal angle, rad
+    y  -- vertical offset, m
+    y' -- vertical angle, rad
+    t  -- time of flight, sec
+    p  -- longitudinal momentum, mc
+
+    Args:
+        file_name: (str) Path to elegant phase space data file.
+
+    Returns: rsbeams.rsptcls.species.Species
+
+    """
 
     read_particle_data = readSDDS(file_name)
     read_particle_data.read()
@@ -45,22 +46,27 @@ def read_elegant(file_name, species_name ='Species'):
 
     species = Species(particle_data, charge=-1, mass=0.511e6, total_charge=charge_data)
 
-
     return species
 
 
-def read_opal(file_name, step_number=None, species_name='Species'):
+def read_opal(file_name: str, step_number: int or None = None) -> Species:
     """Read in a file from OPAL output.
-    :file_name: name of file to read from
-    """
 
-    # opal coordinates are as follows:
-    # x  -- horizontal offset, m
-    # xp -- horizontal momentum, beta*gamma
-    # y  -- vertical offset, m
-    # yp -- vertical momentum, beta*gamma
-    # z  -- Position relative to ? (some sort of reference), m
-    # p  -- total momentum, beta*gamma
+    opal coordinates are as follows:
+    x  -- horizontal offset, m
+    xp -- horizontal momentum, betax*gamma
+    y  -- vertical offset, m
+    yp -- vertical momentum, betay*gamma
+    z  -- Position relative to ? (some sort of reference), m
+    pz  -- longitudinal momentum, betaz*gamma
+
+    Args:
+        file_name: (str) Path to phase space or monitor dump.
+        step_number: (int) Step number to read from phase space dump. If not given then the last step will be read.
+
+    Returns: rsbeams.rsptcls.species.Species
+
+    """
 
     with h5.File(file_name, 'r') as pcdata:
         if not step_number:
@@ -81,9 +87,8 @@ def read_opal(file_name, step_number=None, species_name='Species'):
             particle_data[:, i] = pcdata[loc+'/'+coord]
         total_charge = pcdata[loc].attrs['CHARGE']
 
-
     # TODO: This shouldn't be specific to electrons
-    species =  Species(particle_data, charge=-1, mass=0.511e6, total_charge=total_charge)
+    species = Species(particle_data, charge=-1, mass=0.511e6, total_charge=total_charge)
 
     return species
 
@@ -109,6 +114,7 @@ class Switchyard:
     """Class for writing a particle species data from a code output to a universal format, or vice verse. 
     Can be used to load output from one code into another, or for universal data visualization."""
     _supported_codes = ['genesis', 'elegant', 'opal']
+
     def __init__(self):
         
         # conventions
@@ -146,17 +152,37 @@ class Switchyard:
 
         return reader
 
+    def read(self, file_name: str, file_format: str, species_name: str or None = None, **kwargs) -> None:
+        """Read particle data file.
+        Readers are available for codes ([file_format specifier]: [code name]):
+            elegant: elegant
+            opal: OPAL
+            genesis: genesis1.3
 
-    def read(self, file_name, file_format, species_name=None, **kwargs):
+        Args:
+            file_name: (str) Path to file which will be read.
+            file_format: (str) Format specifier (see listing above).
+            species_name: (str) [optional] Name to register species data under.
+            **kwargs: (dict) Additional arguments that will be passed to the reader.
+
+        Returns: None
+
+        """
         reader = self._get_reader(file_format)
         if not species_name:
             species_name = _DEFAULT_SPECIES_NAME
-        species = reader(file_name, species_name=species_name, **kwargs)
+        species = reader(file_name, **kwargs)
         self._species_insert(species_name, species)
 
-    def write_elegant(self, file_name, species_name):
+    def write_elegant(self, file_name: str, species_name: str) -> int:
         """Write a file to elegant-readable format.
-        :file_name: name of file to write to
+
+        Args:
+            file_name: (str) Path for file to be written to.
+            species_name: (str) Name of Species to write out.
+
+        Returns: (int) 0 on success
+
         """
         
         # TODO Split out conversion function so we have converters and writers
@@ -176,12 +202,18 @@ class Switchyard:
         file_out.create_column('t', t, 'double', colUnits='s')
         file_out.create_column('p', p, 'double', colUnits='m$be$nc')
         file_out.save_sdds(file_name, dataMode='binary')
-        
+
         return 0
 
-    def write_opal(self, file_name, species_name):
+    def write_opal(self, file_name: str, species_name: str) -> int:
         """Write a file to OPAL-readable format.
-        :file_name: name of file to write to
+
+        Args:
+            file_name: (str) Path for file to be written to.
+            species_name: (str) Name of Species to write out.
+
+        Returns: (int) 0 on success
+
         """
         coordinates = self.species[species_name].coordinates
         N = self.species[species_name].macroparticle_count
@@ -189,9 +221,16 @@ class Switchyard:
         np.savetxt(file_name, coordinates, header='{}'.format(N), comments='')
         return 0
 
-    def write_genesis(self, file_name, species_name, version='2.0'):
+    def write_genesis(self, file_name: str, species_name: str, version: str = '2.0') -> int:
         """Write a file to genesis-readable format.
-        :file_name: name of file to write to
+
+        Args:
+            file_name: (str) Path for file to be written to.
+            species_name: (str) Name of Species to write out.
+            version: (str) [default='2.0'] VERSION specification in header of the file.
+
+        Returns: (int) 0 on success
+
         """
         
         # Genesis reads in external files as ASCII with the column format (per documentation):
@@ -207,41 +246,44 @@ class Switchyard:
         # ? COLUMNS X PX Y PY T P
         # and the first line of data has to be the number of input particles
         
-        X  = self.species[species_name].x
+        X = self.species[species_name].x
         PX = self.species[species_name].ux
-        Y  = self.species[species_name].y
+        Y = self.species[species_name].y
         PY = self.species[species_name].uy
-        T  = self.species[species_name].ct / constants.c
+        T = self.species[species_name].ct / constants.c
         T = T - np.average(T)
-        P  = self.species[species_name].pt
-        
-        vers_str = '? VERSION = '+version
-        charge_str = '? CHARGE = '+str(self.species[species_name].total_charge)
-        size_str = '? SIZE = '+str(len(X))
-        clmns_str = '? COLUMNS X PX Y PY T P'
-        
-        f = open(file_name, 'w')
-        f.write(vers_str+'\n')
-        f.write(charge_str+'\n')
-        f.write(size_str+'\n')
-        f.write(clmns_str+'\n')
-        
-        f.close()
+        P = self.species[species_name].pt
+
+        header = ''
+        header += '? VERSION = '+version + '\n'
+        header += '? CHARGE = '+str(self.species[species_name].total_charge) + '\n'
+        header += '? SIZE = '+str(len(X)) + '\n'
+        header += '? COLUMNS X PX Y PY T P' + '\n'
+
+        with open(file_name, 'w') as ff:
+            ff.write(header)
         
         df = pd.DataFrame([X, PX, Y, PY, T, P]).T
         
-        df.to_csv(file_name, mode='a', sep=' ', header=None, index=None)
+        df.to_csv(file_name, mode='a', sep=' ', header=False, index=False)
                 
         return 0
 
-    def write(self, filename, code, species_name=None, **kwargs):
-        """
-        Write output file.
-        :param filename: (str) Name of the file to write to.
-        :param species_name: (str) Name of the species in the `species` dict to write out. Default is '{sn}'
-        :param code: Name of the code format to use for writing.
-        :param kwargs: Additional options to pass to the writer.
-        :return:
+    def write(self, filename: str, code: str, species_name: str or None = None, **kwargs) -> str:
+        """Write output file.
+        Writers are available for codes ([file_format specifier]: [code name]):
+            elegant: elegant
+            opal: OPAL
+            genesis: genesis1.3
+        
+        Args:
+            filename: (str) Path to write file to.
+            code: (str) Simulation code to format output file for. See listing above.
+            species_name: (str or None) [default=None] Name of species to write. Defaults to first registered species. 
+            **kwargs: (dict) Additional arguments to be passed to the writer.
+
+        Returns: (str) name of output file
+
         """.format(sn=_DEFAULT_SPECIES_NAME)
 
         if not species_name:

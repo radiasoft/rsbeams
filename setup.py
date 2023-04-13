@@ -11,6 +11,7 @@ setup(
     author='RadiaSoft LLC',
     author_email='pip@radiasoft.net',
     install_requires=[
+        'h5py',
         'pykern',
         'pathos',
         'numpy>=1.19.1',
