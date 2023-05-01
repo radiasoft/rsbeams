@@ -4,6 +4,16 @@ from rsbeams.rsplot import util
 
 
 def beamline_profile(sdds, page=0, quantities=None, xlim=None, ylim=None, save=None):
+    """ Plot quantities vs position.
+
+    Args:
+        sdds: Open SDDS file from rsbeams.rsdata.readSDDS
+        page: [0] Page number in SDDS file to plot from.
+        quantities: (list) List of quantities to place on plot.
+        xlim: (tuple) (min, max) Manually set plot range in x.
+        ylim: (tuple) (min, max) Manually set plot range in y.
+        save: (str) Path to file (with extension) to save plot.
+    """
     sdds_columns = sdds.columns[page]
 
     if not quantities:
