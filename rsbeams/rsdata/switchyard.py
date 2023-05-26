@@ -79,7 +79,7 @@ def read_opal(file_name, step_number=None, species_name='Species'):
         particle_data = np.empty((mp_count, 6))
         for i, coord in enumerate(['x', 'px', 'y', 'py', 'z', 'pz']):
             particle_data[:, i] = pcdata[loc+'/'+coord]
-        total_charge = pcdata[loc].attrs['CHARGE']
+        total_charge = pcdata[loc].attrs['CHARGE'][0]
 
 
     # TODO: This shouldn't be specific to electrons
@@ -185,6 +185,7 @@ class Switchyard:
         """
         coordinates = self.species[species_name].coordinates
         N = self.species[species_name].macroparticle_count
+        coordinates[:, 4] -= np.mean(coordinates[:, 4])
 
         np.savetxt(file_name, coordinates, header='{}'.format(N), comments='')
         return 0
@@ -216,7 +217,7 @@ class Switchyard:
         P  = self.species[species_name].pt
         
         vers_str = '? VERSION = '+version
-        charge_str = '? CHARGE = '+str(self.species[species_name].total_charge)
+        charge_str = '? CHARGE = '+str(abs(self.species[species_name].total_charge))
         size_str = '? SIZE = '+str(len(X))
         clmns_str = '? COLUMNS X PX Y PY T P'
         
