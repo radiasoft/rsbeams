@@ -110,8 +110,8 @@ class Converter:
                                     self.args['output_unit'] == 'SI'),
                         "e_unit": "eV" * (self.args['output_unit'] == 'eV') + "J" * (self.args['output_unit'] == 'SI'),
                         "mass": None,
-                        "mass_unit": "eV/c^2" * (self.args['output_unit'] == 'eV') + "kg" * (
-                                    self.args['output_unit'] == 'SI'),
+                        "mass_unit": "eV/c^2" * (self.args['mass_unit'] == 'eV') + "kg" * (
+                                    self.args['mass_unit'] == 'SI'),
                         "input": None,
                         "input_unit": None,
                         "input_type": None}
