@@ -126,7 +126,7 @@ class Converter:
                 self.mass = m_e_ev
                 self.outputs["mass"] = m_e_ev
         elif self.args['mass_unit'] == "SI":
-            if self.args['mass']:
+            if self.args['mass'] is not None:
                 self.mass = self.args['mass'] * (1 * (self.args['input_unit'] == 'SI') + ev_per_kg * (
                             self.args['input_unit'] == 'eV'))
                 self.outputs["mass"] = self.args['mass']
@@ -297,8 +297,8 @@ class Converter:
             'mass': 1 / e * c**2
         }
         for key in conversion_factors:
-            print(key, input_dict[key], (conversion_factors[key]), 2 * (input == 'SI') - 1)
-            if input_dict[key]:
+            # print(key, input_dict[key], (conversion_factors[key]), 2 * (input == 'SI') - 1)
+            if input_dict[key] is not None:
                 input_dict[key] = input_dict[key] * (conversion_factors[key]) ** (2 * (input_unit == 'SI') - 1)
 
 
