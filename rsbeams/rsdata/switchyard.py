@@ -85,7 +85,9 @@ def read_opal(file_name: str, step_number: int or None = None) -> Species:
         particle_data = np.empty((mp_count, 6))
         for i, coord in enumerate(['x', 'px', 'y', 'py', 'z', 'pz']):
             particle_data[:, i] = pcdata[loc+'/'+coord]
-        total_charge = pcdata[loc].attrs['CHARGE']
+        # OPAL monitor files put total charge in attr `TotalCharge` while the periodic dump file stores it in `CHARGE`
+        total_charge = charge if (charge := pcdata[loc].attrs.get('TotalCharge')) else pcdata[loc].attrs.get('CHARGE')
+        assert total_charge is not None, f"Total Charge not found in attributes of file {file_name}"
 
     # TODO: This shouldn't be specific to electrons
     species = Species(particle_data, charge=-1, mass=0.511e6, total_charge=total_charge)

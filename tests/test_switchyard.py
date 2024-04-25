@@ -8,7 +8,7 @@ from rsbeams.rsdata.SDDS import readSDDS
 
 _ELEGANT_READ_FILE = 'test_resources/bunch_5001.sdds'
 _OPAL_READ_FILE = 'test_resources/opal.h5'
-_OPAL_MONITOR_FILE = 'test_resources/opal.h5'
+_OPAL_MONITOR_FILE = 'test_resources/output_x_108.h5'
 
 
 class TestReaders(unittest.TestCase):
