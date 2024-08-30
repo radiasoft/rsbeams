@@ -1,3 +1,12 @@
+"""element
+
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
+
 # TODO: No longer going to check against a defined_elements list
 #  Need an object that links like element types between codes when a StructuredBeamline
 #  is dumped back to file for another code to interpret
@@ -82,6 +91,7 @@ class Element(object):
 
         """
         return self._edge()
+
     @edge.setter
     def edge(self, *args, **kwargs):
         raise AttributeError("You cannot directly set the element edge")
@@ -89,6 +99,7 @@ class Element(object):
     @property
     def beamline(self):
         return self._beamline
+
     @beamline.setter
     def beamline(self, *args, **kwargs):
         raise AttributeError("You cannot change the element's address")
@@ -101,7 +112,7 @@ class Element(object):
         for ele in self._beamline.get_beamline_elements():
             if ele != self:
                 try:
-                    length += ele.parameters['L']
+                    length += ele.parameters["L"]
                 except KeyError:
                     pass
             else:
