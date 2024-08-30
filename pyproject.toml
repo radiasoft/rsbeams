@@ -1,0 +1,43 @@
+[build-system]
+requires = ["chronver", "setuptools>=66"]
+build-backend = "setuptools.build_meta"
+
+[project]
+authors = [
+    { name = "RadiaSoft LLC", email = "pip@radiasoft.net" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "h5py",
+    "pykern",
+    "pathos",
+    "numpy>=1.19.1",
+    "scipy",
+    "sympy>=1.2",
+    "ruamel.yaml",
+]
+description = "Code-agnostic Python utilities for particle beam simulations"
+dynamic = ["version"]
+name = "rsbeams"
+readme = "README.md"
+
+[project.scripts]
+rsbeams = "rsbeams.rsbeams_console:main"
+kinematic = "rsbeams.rsbeams.rsstats.kinematic:main"
+
+[project.urls]
+Homepage = "https://git.radiasoft.org/rsbeams"
+
+[tool.setuptools.package-data]
+rsbeams = ["package_data/**"]
+
+[tool.setuptools.packages.find]
+include = ["rsbeams*"]
