@@ -1,3 +1,11 @@
+"""beamline
+
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from .Element import Element
 from sympy import symbols, cosh, sinh, sqrt, lambdify
 from sympy.matrices import Matrix
@@ -16,18 +24,20 @@ class StructuredBeamline(object):
     """
     Holds Element objects and may contain other StructuredBeamline objects.
     """
+
     # TODO: Change main control sequence and beamline object to allow for multiple layers of sublines.
-    K1, L = symbols('K1 L')
+    K1, L = symbols("K1 L")
     matrices = {
         # Transverse matrices for elements
-        'quadrupole': Matrix(([cosh(sqrt(-K1) * L), sinh(sqrt(-K1) * L) / sqrt(-K1), 0, 0],
-                              [sqrt(-K1) * sinh(sqrt(-K1) * L), cosh(sqrt(-K1) * L), 0, 0],
-                              [0, 0, cosh(sqrt(K1) * L), sinh(sqrt(K1) * L) / sqrt(K1)],
-                              [0, 0, sqrt(K1) * sinh(sqrt(K1) * L), cosh(sqrt(K1) * L)])),
-        'drift': Matrix(([1, L, 0, 0],
-                         [0, 1, 0, 0],
-                         [0, 0, 1, L],
-                         [0, 0, 0, 1]))
+        "quadrupole": Matrix(
+            (
+                [cosh(sqrt(-K1) * L), sinh(sqrt(-K1) * L) / sqrt(-K1), 0, 0],
+                [sqrt(-K1) * sinh(sqrt(-K1) * L), cosh(sqrt(-K1) * L), 0, 0],
+                [0, 0, cosh(sqrt(K1) * L), sinh(sqrt(K1) * L) / sqrt(K1)],
+                [0, 0, sqrt(K1) * sinh(sqrt(K1) * L), cosh(sqrt(K1) * L)],
+            )
+        ),
+        "drift": Matrix(([1, L, 0, 0], [0, 1, 0, 0], [0, 0, 1, L], [0, 0, 0, 1])),
     }
 
     def __init__(self, name):
@@ -42,11 +52,14 @@ class StructuredBeamline(object):
     @property
     def length(self):
         return self._length()
+
     @length.setter
     def length(self, *arg, **kwargs):
         raise AttributeError("You cannot change beamline length")
 
-    def add_element(self, element_name, element_type, element_parameters, subline=False):
+    def add_element(
+        self, element_name, element_type, element_parameters, subline=False
+    ):
         """
         Insert a new element at the end of a beamline.
         Can automatically be added to a subline if subline=True.
@@ -63,14 +76,16 @@ class StructuredBeamline(object):
         """
         if element_name in self.elements:
             if self._verbosity > 1:
-                print('Element {} already exists. Inserting copy.'.format(element_name))
+                print("Element {} already exists. Inserting copy.".format(element_name))
             the_element = self.elements[element_name]
         else:
             the_element = Element(element_name, element_type, **element_parameters)
             self.elements[element_name] = the_element
         the_element._beamline = self._top
         if subline:
-            assert isinstance(self.sequence[-1], StructuredBeamline), "Last element is not type StructuredBeamline \
+            assert isinstance(
+                self.sequence[-1], StructuredBeamline
+            ), "Last element is not type StructuredBeamline \
                                                                       subline must be false"
             self.sequence[-1].sequence.append(the_element)
         else:
@@ -78,7 +93,7 @@ class StructuredBeamline(object):
 
     def add_beamline(self, name):
         if name in self.lines.keys():
-            print(f'Beamline {name} already exists. Inserting copy.')
+            print(f"Beamline {name} already exists. Inserting copy.")
             self.sequence.append(self.lines[name])
         else:
             self.lines[name] = StructuredBeamline(name)
@@ -97,32 +112,46 @@ class StructuredBeamline(object):
         :param filename:
         :return:
         """
+
         # Return elements preserving sub-line structures
         def return_elements(line):
             the_beamline = []
             for ele in line.sequence:
                 if isinstance(ele, Element):
-                    the_beamline.append({'name': ele.name, **ele.parameters, 'type': ele.type})
+                    the_beamline.append(
+                        {"name": ele.name, **ele.parameters, "type": ele.type}
+                    )
                 else:
                     the_beamline.append(return_elements(ele))
             return the_beamline
 
         beamline = return_elements(self)
-        with open(filename, 'w') as outputfile:
-            yaml.dump(beamline, outputfile, default_flow_style=False, Dumper=yaml.RoundTripDumper)
+        with open(filename, "w") as outputfile:
+            yaml.dump(
+                beamline,
+                outputfile,
+                default_flow_style=False,
+                Dumper=yaml.RoundTripDumper,
+            )
 
     def load_beamline(self, filename, code):
         if len(self.sequence) != 0:
             print("Cannot load a new beamline.\nThis StructuredBeamline is not empty.")
             return
-        elements = yaml.load(open(filename, 'r'), Loader=yaml.Loader)
+        elements = yaml.load(open(filename, "r"), Loader=yaml.Loader)
 
         def create_beamline(elements, beamline):
             for element in elements:
                 if isinstance(element, dict):
-                    beamline.add_element(element['name'], element['type'],
-                                         {k: v for k, v in element.items()
-                                         if (k != 'type') and (k != 'name')})
+                    beamline.add_element(
+                        element["name"],
+                        element["type"],
+                        {
+                            k: v
+                            for k, v in element.items()
+                            if (k != "type") and (k != "name")
+                        },
+                    )
                 else:
                     self.add_beamline(name=None)
                     create_beamline(element, self.sequence[-1])
@@ -154,7 +183,7 @@ class StructuredBeamline(object):
         length = 0.0
         for ele in self.get_beamline_elements():
             try:
-                length += ele.parameters['L']
+                length += ele.parameters["L"]
             except KeyError:
                 pass
 
@@ -172,12 +201,18 @@ class StructuredBeamline(object):
         :param warnings: (bool) Print alert if a new parameter is created.
         :return: None
         """
-        assert type(element) == str or type(element) == int, "element must be a string or int"
+        assert (
+            type(element) == str or type(element) == int
+        ), "element must be a string or int"
 
         if type(parameter) != list:
-            parameter = [parameter, ]
+            parameter = [
+                parameter,
+            ]
         if type(value) != list:
-            value = [value, ]
+            value = [
+                value,
+            ]
 
         if type(element) == str:
             eles = [i for i, ele in enumerate(self.sequence) if ele.name == element]
@@ -192,7 +227,11 @@ class StructuredBeamline(object):
                 except KeyError:
                     self.sequence[index].parameters[p] = v
                     if warnings:
-                        print("WARNING: Creating a new parameter {} for element {}".format(p, self.sequence[index].name))
+                        print(
+                            "WARNING: Creating a new parameter {} for element {}".format(
+                                p, self.sequence[index].name
+                            )
+                        )
 
     def generate_matrix(self, concatenate=True):
         elements = []

@@ -1,37 +1,48 @@
+"""lattice_importer
+
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import os
 from pykern import pkjson
 from pykern import pkio
 from pykern import pkresource
 from rsbeams.rslattice.Beamline import StructuredBeamline
 
-_RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
-_SCHEMA_DIR = ''
+_RESOURCE_FOLDER = pkio.py_path(pkresource.filename(""))
+_SCHEMA_DIR = ""
 
 # TODO The get_schema is actually needed for the dumper to verify that
 #  only parameters known to the code are dumped
 
 
 def get_schema(code):
-    code_schema_path = os.path.join(_RESOURCE_FOLDER, _SCHEMA_DIR, code + '-schema.json')
+    code_schema_path = os.path.join(
+        _RESOURCE_FOLDER, _SCHEMA_DIR, code + "-schema.json"
+    )
 
     try:
         schema = pkjson.load_any(open(code_schema_path))
         return schema
     except FileNotFoundError:
-        print(f'{code} not supported')
-
-def _replace_rpn_variables(parameter_dict, config):
-    # Check for RPN variable definitions in config and replace with values if present
-    for key, val in parameter_dict.items():
-        if val in config['models']['rpnCache']:
-            parameter_dict[key] = config['models']['rpnCache'][val]
+        print(f"{code} not supported")
 
 
 def _replace_rpn_variables(parameter_dict, config):
     # Check for RPN variable definitions in config and replace with values if present
     for key, val in parameter_dict.items():
-        if val in config['models']['rpnCache']:
-            parameter_dict[key] = config['models']['rpnCache'][val]
+        if val in config["models"]["rpnCache"]:
+            parameter_dict[key] = config["models"]["rpnCache"][val]
+
+
+def _replace_rpn_variables(parameter_dict, config):
+    # Check for RPN variable definitions in config and replace with values if present
+    for key, val in parameter_dict.items():
+        if val in config["models"]["rpnCache"]:
+            parameter_dict[key] = config["models"]["rpnCache"][val]
 
 
 def parse_json(sirepo_json, beamline):
@@ -49,35 +60,45 @@ def parse_json(sirepo_json, beamline):
     except TypeError:
         definition = sirepo_json
 
-    beamline_definitions = {v['id']: v for v in definition['models']['beamlines']}
-    element_defitions = {v['_id']: v for v in definition['models']['elements']}
+    beamline_definitions = {v["id"]: v for v in definition["models"]["beamlines"]}
+    element_defitions = {v["_id"]: v for v in definition["models"]["elements"]}
 
     the_beamline = {}
     for _id, line in beamline_definitions.items():
-        if line['name'] == beamline:
+        if line["name"] == beamline:
             the_beamline = line
             break
     if not the_beamline:
-        raise ValueError(f'{beamline} not found in {sirepo_json}')
+        raise ValueError(f"{beamline} not found in {sirepo_json}")
 
     def generate_beamline(items, beamline, definition):
         for item in items:
             if abs(item) in beamline_definitions.keys():
-                beamline.add_beamline(beamline_definitions[abs(item)]['name'])
+                beamline.add_beamline(beamline_definitions[abs(item)]["name"])
                 if item >= 0:
-                    generate_beamline(beamline_definitions[item]['items'],
-                                      beamline.lines[beamline_definitions[item]['name']], definition)
+                    generate_beamline(
+                        beamline_definitions[item]["items"],
+                        beamline.lines[beamline_definitions[item]["name"]],
+                        definition,
+                    )
                 else:
                     item = abs(item)
-                    generate_beamline(beamline_definitions[item]['items'][::-1],
-                                      beamline.lines[beamline_definitions[item]['name']], definition)
+                    generate_beamline(
+                        beamline_definitions[item]["items"][::-1],
+                        beamline.lines[beamline_definitions[item]["name"]],
+                        definition,
+                    )
             else:
                 element = element_defitions[item]
-                element_minus_special = {k: v for k, v in element.items() if k != 'name' and k != 'type'}
+                element_minus_special = {
+                    k: v for k, v in element.items() if k != "name" and k != "type"
+                }
                 _replace_rpn_variables(element_minus_special, definition)
-                beamline.add_element(element['name'], element['type'], element_minus_special)
+                beamline.add_element(
+                    element["name"], element["type"], element_minus_special
+                )
 
-    model = StructuredBeamline(the_beamline['name'])
-    generate_beamline(the_beamline['items'], model, definition)
+    model = StructuredBeamline(the_beamline["name"])
+    generate_beamline(the_beamline["items"], model, definition)
 
     return model

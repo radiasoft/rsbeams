@@ -1,10 +1,18 @@
+"""plots
+
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import numpy as np
 import matplotlib.pyplot as plt
 from rsbeams.rsplot import util
 
 
 def beamline_profile(sdds, page=0, quantities=None, xlim=None, ylim=None, save=None):
-    """ Plot quantities vs position.
+    """Plot quantities vs position.
 
     Args:
         sdds: Open SDDS file from rsbeams.rsdata.readSDDS
@@ -17,22 +25,52 @@ def beamline_profile(sdds, page=0, quantities=None, xlim=None, ylim=None, save=N
     sdds_columns = sdds.columns[page]
 
     if not quantities:
-        quantities = ['Sx', 'Sy']
+        quantities = ["Sx", "Sy"]
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 6),
-                                   sharex=True,
-                                   gridspec_kw={'height_ratios': [1, 8]})
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(14, 6), sharex=True, gridspec_kw={"height_ratios": [1, 8]}
+    )
 
-    ax1.axis('off')
+    ax1.axis("off")
     util.plot_profile(sdds_columns, ax1, height=0.25)
     for quant in quantities:
-        ax2.plot(sdds_columns['s'], sdds_columns[quant], label=util.format_symbol(sdds.column_symbol(quant)) if sdds.column_symbol(quant) != '' else sdds.column_description(quant))
+        ax2.plot(
+            sdds_columns["s"],
+            sdds_columns[quant],
+            label=(
+                util.format_symbol(sdds.column_symbol(quant))
+                if sdds.column_symbol(quant) != ""
+                else sdds.column_description(quant)
+            ),
+        )
 
     ax2.legend(fontsize=16)
-    ax2.set_xlabel('s (m)', fontsize=16)
+    ax2.set_xlabel("s (m)", fontsize=16)
 
-    ylabel = ','.join([util.format_symbol(sdds.column_symbol(quant)) if sdds.column_symbol(quant) != '' else sdds.column_description(quant) for quant in quantities])
-    ylabel += ' (' + ','.join([util.format_symbol(sdds.column_units(quant)) if sdds.column_units(quant) != '' else '$-$' for quant in quantities]) + ')'
+    ylabel = ",".join(
+        [
+            (
+                util.format_symbol(sdds.column_symbol(quant))
+                if sdds.column_symbol(quant) != ""
+                else sdds.column_description(quant)
+            )
+            for quant in quantities
+        ]
+    )
+    ylabel += (
+        " ("
+        + ",".join(
+            [
+                (
+                    util.format_symbol(sdds.column_units(quant))
+                    if sdds.column_units(quant) != ""
+                    else "$-$"
+                )
+                for quant in quantities
+            ]
+        )
+        + ")"
+    )
     ax2.set_ylabel(ylabel, fontsize=16)
     if xlim:
         ax2.set_xlim(*xlim)
@@ -57,26 +95,36 @@ def phase_space(sdds, page=0, bins=128, save=None):
 
     """
     fig, axes = plt.subplots(2, 2, figsize=(12, 12))
-    labels = [('x (mm)', 'x\' (mrad)'),
-              ('y (mm)', 'y\' (mrad)'),
-              ('x (mm)', 'y (mm)'),
-              ('t (ps)', r'$\delta$ ( )')]
+    labels = [
+        ("x (mm)", "x' (mrad)"),
+        ("y (mm)", "y' (mrad)"),
+        ("x (mm)", "y (mm)"),
+        ("t (ps)", r"$\delta$ ( )"),
+    ]
 
     sdds_columns = sdds.columns[page]
     sdds_parameters = sdds.parameters[page]
 
-    data = [(sdds_columns['x'] * 1e3, sdds_columns['xp'] * 1e3),
-            (sdds_columns['y'] * 1e3, sdds_columns['yp'] * 1e3),
-            (sdds_columns['x'] * 1e3, sdds_columns['y'] * 1e3),
-            ((sdds_columns['t'] - np.average(sdds_columns['t'])) * 1e12,
-             (sdds_columns['p'] - np.average(sdds_columns['p'])) / np.average(sdds_columns['p']))]
+    data = [
+        (sdds_columns["x"] * 1e3, sdds_columns["xp"] * 1e3),
+        (sdds_columns["y"] * 1e3, sdds_columns["yp"] * 1e3),
+        (sdds_columns["x"] * 1e3, sdds_columns["y"] * 1e3),
+        (
+            (sdds_columns["t"] - np.average(sdds_columns["t"])) * 1e12,
+            (sdds_columns["p"] - np.average(sdds_columns["p"]))
+            / np.average(sdds_columns["p"]),
+        ),
+    ]
 
     for ax, datum, label in zip(axes.flatten(), data, labels):
         counts, xbins, ybins = np.histogram2d(*datum, bins=bins)
-        ax.imshow(counts.T, interpolation='gaussian',
-                  extent=(np.min(xbins), np.max(xbins), np.min(ybins), np.max(ybins)),
-                  origin='lower',
-                  aspect='auto')
+        ax.imshow(
+            counts.T,
+            interpolation="gaussian",
+            extent=(np.min(xbins), np.max(xbins), np.min(ybins), np.max(ybins)),
+            origin="lower",
+            aspect="auto",
+        )
         ax.set_xlabel(label[0])
         ax.set_ylabel(label[1])
 
@@ -96,7 +144,7 @@ def _get_phase_space_figure(xs=12, ys=12):
     return fig, gs, hm, mom, tim
 
 
-def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
+def longitudinal_phase_space(sdds, page=0, charge="auto", save=None):
     """
     Plot of the longitudinal phase space with projection plots of current distribution and momentum profile.
     Args:
@@ -116,20 +164,22 @@ def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
     sdds_parameters = sdds.parameters[page]
 
     time_scale = 1e12
-    t = (sdds_columns['t'] - np.average(sdds_columns['t']))
-    p = sdds_columns['p']
+    t = sdds_columns["t"] - np.average(sdds_columns["t"])
+    p = sdds_columns["p"]
 
     normalized_charge = False
-    if charge == 'auto':
+    if charge == "auto":
         try:
-            charge = sdds_parameters['Charge']
+            charge = sdds_parameters["Charge"]
             if charge == 0.0:
-                print('Warning Charge is 0 in SDDS file. Using normalized counts.')
+                print("Warning Charge is 0 in SDDS file. Using normalized counts.")
                 charge = 1.0
                 normalized_charge = True
         except KeyError:
-            print('Warning: No charge data found in SDDS file. Using normalized counts.')
-            print('Set charge manually if desired.')
+            print(
+                "Warning: No charge data found in SDDS file. Using normalized counts."
+            )
+            print("Set charge manually if desired.")
             charge = 1.0
             normalized_charge = True
 
@@ -137,26 +187,29 @@ def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
     momentum_bins, momentum_counts = util.get_histogram_points(p, 256)
     if normalized_charge:
         current_counts = current_counts / np.max(current_counts)
-        time_label = 'Counts ()'
+        time_label = "Counts ()"
     else:
-        time_label = 'Current (A)'
+        time_label = "Current (A)"
 
     counts, xbins, ybins = np.histogram2d(t * time_scale, p, bins=128)
     #     im = ax.imshow(H.T, cmap=cmap, interpolation='sinc', norm=matplotlib.colors.LogNorm())
 
-    hm.imshow(counts.T, interpolation='gaussian',
-              extent=(np.min(xbins), np.max(xbins), np.min(ybins), np.max(ybins)),
-              origin='lower',
-              aspect='auto')
-    hm.set_ylabel('p ($m_e c$)')
+    hm.imshow(
+        counts.T,
+        interpolation="gaussian",
+        extent=(np.min(xbins), np.max(xbins), np.min(ybins), np.max(ybins)),
+        origin="lower",
+        aspect="auto",
+    )
+    hm.set_ylabel("p ($m_e c$)")
     hm.set_xticklabels([])
 
     mom.plot(momentum_counts, momentum_bins)
     mom.set_yticklabels([])
-    mom.set_xlabel('Counts ()')
+    mom.set_xlabel("Counts ()")
 
     tim.plot(time_bins * time_scale, current_counts)
-    tim.set_xlabel('t (ps)')
+    tim.set_xlabel("t (ps)")
     tim.set_ylabel(time_label)
 
     if save:
@@ -166,14 +219,20 @@ def longitudinal_phase_space(sdds, page=0, charge='auto', save=None):
 
 
 def horizontal_phase_space(sdds, page=0, save=None):
-    phase_space_projection(sdds, 'x', 'xp', x_label='x (mm)', y_label='x\' (mrad)', page=page, save=save)
+    phase_space_projection(
+        sdds, "x", "xp", x_label="x (mm)", y_label="x' (mrad)", page=page, save=save
+    )
 
 
 def vertical_phase_space(sdds, page=0, save=None):
-    phase_space_projection(sdds, 'y', 'yp', page=page, x_label='y (mm)', y_label='y\' (mrad)', save=save)
+    phase_space_projection(
+        sdds, "y", "yp", page=page, x_label="y (mm)", y_label="y' (mrad)", save=save
+    )
 
 
-def phase_space_projection(sdds, coordinate_x, coordinate_y, x_label='', y_label='', page=0, save=None):
+def phase_space_projection(
+    sdds, coordinate_x, coordinate_y, x_label="", y_label="", page=0, save=None
+):
     """
     Plot of the longitudinal phase space with projection plots of current distribution and momentum profile.
     Args:
@@ -192,26 +251,28 @@ def phase_space_projection(sdds, coordinate_x, coordinate_y, x_label='', y_label
     x = sdds_columns[coordinate_x]
     y = sdds_columns[coordinate_y]
 
-
     x_bins, x_counts = util.get_histogram_points(x * space_scale, 256)
     y_bins, y_counts = util.get_histogram_points(y * space_scale, 256)
     counts, mxbins, mybins = np.histogram2d(x * space_scale, y * space_scale, bins=128)
 
-    hm.imshow(counts.T, interpolation='gaussian',
-              extent=(np.min(mxbins), np.max(mxbins), np.min(mybins), np.max(mybins)),
-              origin='lower',
-              aspect='auto')
+    hm.imshow(
+        counts.T,
+        interpolation="gaussian",
+        extent=(np.min(mxbins), np.max(mxbins), np.min(mybins), np.max(mybins)),
+        origin="lower",
+        aspect="auto",
+    )
 
     hm.set_ylabel(y_label)
     hm.set_xticklabels([])
 
     mom.plot(y_counts, y_bins)
     mom.set_yticklabels([])
-    mom.set_xlabel('Counts ()')
+    mom.set_xlabel("Counts ()")
 
     tim.plot(x_bins, x_counts)
     tim.set_xlabel(x_label)
-    tim.set_ylabel('Counts ()')
+    tim.set_ylabel("Counts ()")
 
     if save:
         plt.savefig(save)
