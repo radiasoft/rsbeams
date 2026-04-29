@@ -691,7 +691,7 @@ class writeSDDS:
                         outputFile.write('{}\n'.format(parameter['parData']).encode())
                 if self.dataMode == 'binary':
                         outputFile.write(pack('={}'.format(self.key_indentity[parameter['parType']]),
-                                              parameter['parData']))
+                                              parameter['parData'].item() if hasattr(parameter['parData'], 'item') else parameter['parData']))
 
         # Write row count. Write 0 if no rows.
         if self.dataMode == 'ascii':
