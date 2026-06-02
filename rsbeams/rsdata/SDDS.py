@@ -690,8 +690,16 @@ class writeSDDS:
                 if self.dataMode == 'ascii':
                         outputFile.write('{}\n'.format(parameter['parData']).encode())
                 if self.dataMode == 'binary':
+                        # ``struct.pack`` needs a scalar. ``parData`` may be a
+                        # single-element numpy array (e.g. ``array([-1e-9])``);
+                        # passing that to ``pack`` errors on numpy >= 2.3, which
+                        # promoted the array-to-scalar conversion from a
+                        # DeprecationWarning to an error (#55). ``np.asarray``
+                        # followed by ``item`` extracts a Python scalar while
+                        # leaving plain Python/numpy scalars untouched.
+                        par_data = np.asarray(parameter['parData']).item()
                         outputFile.write(pack('={}'.format(self.key_indentity[parameter['parType']]),
-                                              parameter['parData']))
+                                              par_data))
 
         # Write row count. Write 0 if no rows.
         if self.dataMode == 'ascii':

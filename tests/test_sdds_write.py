@@ -1,3 +1,6 @@
+import os
+import struct
+import tempfile
 import unittest
 from rsbeams.rsdata.SDDS import writeSDDS, readSDDS
 from subprocess import Popen, PIPE
@@ -91,6 +94,43 @@ class TestWriteAscii(unittest.TestCase):
 #
 #     def test_status_one(self):
 #         self.assertEqual(self.status, 'ok\n')
+
+
+class TestWriteParameterScalar(unittest.TestCase):
+    # Regression tests for #55: writing a binary parameter whose value is a
+    # single-element numpy array must not raise. numpy >= 2.3 turned the
+    # implicit array-to-scalar conversion into an error, so passing the array
+    # straight to ``struct.pack`` raised ``struct.error``. These tests read the
+    # value back directly (no external SDDS tools needed) and also cover plain
+    # Python scalars to make sure those still round-trip.
+
+    _fmt = {'double': 'd', 'short': 's', 'long': 'i'}
+
+    def _write_and_read_parameter(self, par_data, par_type):
+        fd, path = tempfile.mkstemp(suffix='.sdds')
+        os.close(fd)
+        try:
+            writer = writeSDDS()
+            writer.create_parameter('par', par_data, par_type)
+            writer.save_sdds(path, dataMode='binary')
+            fmt = '=' + self._fmt[par_type]
+            with open(path, 'rb') as f:
+                raw = f.read()
+            return struct.unpack(fmt, raw[-struct.calcsize(fmt):])[0]
+        finally:
+            os.remove(path)
+
+    def test_single_element_array_parameter(self):
+        self.assertAlmostEqual(
+            self._write_and_read_parameter(np.array([-1e-9]), 'double'), -1e-9)
+
+    def test_numpy_scalar_parameter(self):
+        self.assertEqual(
+            self._write_and_read_parameter(np.int64(42), 'long'), 42)
+
+    def test_python_scalar_parameter(self):
+        self.assertAlmostEqual(
+            self._write_and_read_parameter(2342.452, 'double'), 2342.452, places=3)
 
 
 if __name__ == '__main__':
